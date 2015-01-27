@@ -99,6 +99,8 @@ foreach ($rows as $myrow) {
 	
 	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
 	$tags['traces'] = $myrow['tracks'];
+	$tags['name'] = $myrow['Utcanev'];
+	$tags['oneway'] = $myrow['dirindicator'] == '1' ? 'yes' : null;
 	
 	switch ($myrow['code']) {
 		case 0x81:
@@ -115,6 +117,18 @@ foreach ($rows as $myrow) {
 		case 0x93:
 		case 0x94:
 			$tags['highway'] = 'residential';
+			break;
+
+		case 0xc1:
+			$tags['railway'] = 'rail';
+			break;
+
+		case 0xc2:
+			$tags['railway'] = 'narrow_gauge';
+			break;
+
+		case 0xc3:
+			$tags['railway'] = 'tram';
 			break;
 
 	}
