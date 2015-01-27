@@ -23,13 +23,13 @@ switch ($url['path']) {
 		break;
 
 	case $base . 'trackpoints':
-		require_once('notes.php');
+		require_once('trackpoints.php');
 		break;
 		
 	default:
 		header('HTTP/1.0 404 Not Found');
 		echo '404 Not Found';
-		file_put_contents('log', $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND);
+		// file_put_contents('log', $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND);
 
 }
 
