@@ -98,9 +98,10 @@ foreach ($rows as $myrow) {
 	}
 	
 	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
-	$tags['traces'] = $myrow['tracks'];
-	$tags['name'] = $myrow['Utcanev'];
-	$tags['oneway'] = $myrow['dirindicator'] == '1' ? 'yes' : null;
+	$tags['traces'] = @$myrow['tracks'];
+	$tags['name'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utcanev'] != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
+	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
+	$tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
 	
 	switch ($myrow['code']) {
 		case 0x81:
@@ -114,9 +115,77 @@ foreach ($rows as $myrow) {
 			$tags['highway'] = 'track';
 			break;
 
+		case 0x86:
+			$tags['highway'] = 'residential';
+			$tags['surface'] = 'unpaved';
+			break;
+
+		case 0x87:
+			$tags['highway'] = 'track';
+			$tags['tracktype'] = 'grade1';
+			break;
+
+		case 0x91:
+			$tags['highway'] = 'footway';
+			break;
+
 		case 0x93:
 		case 0x94:
 			$tags['highway'] = 'residential';
+			break;
+
+		case 0x95:
+			$tags['highway'] = 'tertiary';
+			break;
+
+		case 0x96:
+			$tags['highway'] = 'secondary';
+			break;
+
+		case 0x97:
+			$tags['highway'] = 'primary';
+			break;
+
+		case 0x98:
+			$tags['highway'] = 'trunk';
+			break;
+
+		case 0x99:
+			$tags['highway'] = 'motorway';
+			break;
+
+		case 0x9a:
+		case 0x9b:
+			$tags['highway'] = 'unclassified';
+			break;
+
+		case 0xa2:
+			$tags['junction'] = 'roundabout';
+			break;
+
+		case 0xa3:
+			$tags['highway'] = 'steps';
+			break;
+
+		case 0xa4:
+			$tags['aeroway'] = 'runway';
+			break;
+
+		case 0xb1:
+			$tags['waterway'] = 'river';
+			break;
+
+		case 0xb2:
+			$tags['waterway'] = 'stream';
+			break;
+
+		case 0xb3:
+			$tags['waterway'] = 'stream';
+			$tags['intermittent'] = 'yes';
+			break;
+
+		case 0xb4:
+			$tags['route'] = 'ferry';
 			break;
 
 		case 0xc1:
@@ -129,6 +198,40 @@ foreach ($rows as $myrow) {
 
 		case 0xc3:
 			$tags['railway'] = 'tram';
+			break;
+
+		case 0xc4:
+			$tags['barrier'] = 'fence';
+			break;
+
+		case 0xc5:
+			$tags['power'] = 'line';
+			break;
+
+		case 0xc6:
+			$tags['man_made'] = 'pipeline';
+			break;
+
+		case 0xc7:
+			$tags['aerialway'] = 'chair_lift';
+			break;
+
+		case 0xd3:
+			$tags['natural'] = 'coastline';
+			break;
+
+		case 0xd4:
+			$tags['natural'] = 'valley';
+			break;
+
+		case 0xd5:
+			$tags['boundary'] = 'administrative';
+			$tags['admin_level'] = '2';
+			break;
+
+		case 0xd6:
+			$tags['boundary'] = 'administrative';
+			$tags['admin_level'] = '6';
 			break;
 
 	}
