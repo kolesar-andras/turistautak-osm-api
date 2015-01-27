@@ -1,0 +1,137 @@
+<?php 
+
+require('../include_general.php');
+require('../include_arrays.php');
+ini_set('display_errors', 1);
+
+try {
+
+if (!allow_download($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])) {
+	$realm = 'turistautak.hu';
+	header('WWW-Authenticate: Basic realm="' . $realm . '"');
+    header('HTTP/1.0 401 Unauthorized');
+	exit;
+}
+
+// bounding box
+if (@$_REQUEST['bbox'] == '') throw new Exception('no bbox');
+$bbox = explode(',', $_REQUEST['bbox']);
+if (count($bbox) != 4) throw new Exception('invalid bbox syntax');
+if ($bbox[0]>=$bbox[2] || $bbox[1]>=$bbox[3]) throw new Exception('invalid bbox');
+
+$area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
+if ($area>0.25) throw new Exception('bbox too large');
+
+$nd = array();
+
+// lines
+$sql = sprintf("SELECT * FROM segments
+	WHERE deleted=0
+	AND lon_max>=%1.6f
+	AND lat_max>=%1.6f
+	AND lon_min<=%1.6f
+	AND lat_min<=%1.6f",
+	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+
+$rows = array_query($sql);
+
+echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
+echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
+echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.6f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
+
+foreach ($rows as $myrow) {
+
+	$nodes = explode("\n", $myrow['points']);
+	$ndrefs = array();
+	foreach ($nodes as $node_id => $node) {
+		if (count($coords = explode(';', $node)) >=2) {
+			$node = sprintf('%1.6f,%1.6f', $coords[0], $coords[1]);
+			if (isset($nd[$node])) {
+				$ref = $nd[$node];
+			} else {
+				$ref = str_replace('.', '', str_replace(',', '', $node));
+				$nd[$node] = $ref;
+			}
+			$ndrefs[] = $ref;
+		}
+	}
+	
+	$attr = array(
+		'id' => $myrow['id'],
+		'version' => '999999999',
+		// '' => ,
+	);
+	
+	$tags = array();
+	foreach ($GLOBALS['segment_attributes'] as $id => $array) {
+
+		if (null !== $array[1]) {
+			$field = $array[1];
+		} else {
+			$field = $id;
+		}
+
+		if (!is_null(@$myrow[$field])) {
+			$tags[$id] = iconv('Windows-1250', 'UTF-8', $myrow[$field]);
+		}
+		
+	}
+	
+	$tags['Type'] = sprintf('0x%02x', $myrow['code']);
+	
+	$ways[] = array(
+		'attr' => $attr,
+		'nd' => $ndrefs,
+		'tags' => $tags,
+	);
+		
+}
+
+foreach ($nd as $node => $ref) {
+	list($lat, $lon) = explode(',', $node);
+	echo sprintf('<node id="%s" lat="%1.6f" lon="%1.6f" version="999999999" />', $ref, $lat, $lon), "\n";
+}
+
+foreach ($ways as $way) {
+	$attrs = array();
+	foreach ($way['attr'] as $k => $v) {
+		$attrs[] = sprintf("%s='%s'", $k, htmlspecialchars($v));
+	}
+	echo sprintf('<way %s >', implode(' ', $attrs)), "\n";
+	foreach ($way['nd'] as $ref) {
+		echo sprintf("<nd ref='%s' />", $ref), "\n";
+	}
+	foreach ($way['tags'] as $k => $v) {
+		echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars($k), htmlspecialchars($v)), "\n";
+	}
+	echo '</way>', "\n";
+	
+}
+
+echo '</osm>', "\n";
+
+} catch (Exception $e) {
+
+	header('HTTP/1.1 400 Bad Request');
+	echo $e->getMessage();	
+
+}
+
+function allow_download ($user, $password) {
+
+	if ($user == '') return false;
+	if ($password == '') return false;
+
+	$cryptpass = substr(crypt(strtolower($password), PASSWORD_SALT), 2);
+	$sql_user = "SELECT id, userpasswd, uids, user_ids, allow_turistautak_region_download FROM geocaching.users WHERE member='" . addslashes($user) . "'";
+
+	if (!$myrow_user = mysql_fetch_array(mysql_query($sql_user))) return false;
+	if ($myrow_user['userpasswd'] != $cryptpass) return false;
+	if ($myrow_user['allow_turistautak_region_download']) return true;
+	
+	$sql_rights = sprintf("SELECT COUNT(*) FROM regions_explicit WHERE user_id=%d AND allow_region_download=1", $myrow_user['id']);
+	if (!simple_query($sql_rights)) return false;
+	
+	return true;
+
+}
