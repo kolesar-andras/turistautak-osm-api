@@ -6,7 +6,7 @@ $url = parse_url($_SERVER['REQUEST_URI']);
 switch ($url['path']) {
 
 	case '/api/capabilities':
-		// echo "#"; exit;
+	case $base . 'capabilities':
 		require_once('capabilities.php');
 		break;
 
@@ -18,9 +18,18 @@ switch ($url['path']) {
 		require_once('map.php');
 		break;
 		
+	case $base . 'notes':
+		require_once('notes.php');
+		break;
+
+	case $base . 'trackpoints':
+		require_once('notes.php');
+		break;
+		
 	default:
 		header('HTTP/1.0 404 Not Found');
 		echo '404 Not Found';
+		file_put_contents('log', $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND);
 
 }
 
