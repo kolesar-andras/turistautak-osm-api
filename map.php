@@ -23,6 +23,7 @@ $area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
 if ($area>0.25) throw new Exception('bbox too large');
 
 $nd = array();
+$nodetags = array();
 
 // lines
 $sql = sprintf("SELECT * FROM segments
@@ -41,18 +42,37 @@ echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.
 
 foreach ($rows as $myrow) {
 
-	$nodes = explode("\n", $myrow['points']);
+	$nodes = explode("\n", trim($myrow['points']));
 	$ndrefs = array();
+	$nodecount = count($nodes);
 	foreach ($nodes as $node_id => $node) {
 		if (count($coords = explode(';', $node)) >=2) {
 			$node = sprintf('%1.6f,%1.6f', $coords[0], $coords[1]);
 			if (isset($nd[$node])) {
 				$ref = $nd[$node];
+
+				// ha olyan node-ba futottunk, ami már volt,
+				// akkor levesszük róla a fixme=continue-t
+				// mivel megtaláltuk a felmérendő út belső végét
+				unset($nodetags[$ref]['fixme']);
+				unset($nodetags[$ref]['noexit']);
+
 			} else {
 				$ref = str_replace('.', '', str_replace(',', '', $node));
 				$nd[$node] = $ref;
+
+				// ezt csak akkor vizsgáljuk le, ha még nem volt ez a node,
+				// hiszen ha volt, akkor már nem külső vég
+				if (($node_id == 0) && ($myrow['code'] == 0xd1)) $nodetags[$ref]['fixme'] = 'continue';
+				if (($node_id == $nodecount-1) && ($myrow['code'] == 0xd1)) $nodetags[$ref]['fixme'] = 'continue';
+
+				// ezt is, mert csak külső végre van értelme
+				if (($node_id == 0) && ($myrow['blind'] & 1)) $nodetags[$ref]['noexit'] = 'yes';
+				if (($node_id == $nodecount-1) && ($myrow['blind'] & 2)) $nodetags[$ref]['noexit'] = 'yes';
+
 			}
 			$ndrefs[] = $ref;
+			
 		}
 	}
 	
@@ -109,7 +129,17 @@ foreach ($rows as $myrow) {
 
 foreach ($nd as $node => $ref) {
 	list($lat, $lon) = explode(',', $node);
-	echo sprintf('<node id="%s" lat="%1.6f" lon="%1.6f" version="999999999" />', $ref, $lat, $lon), "\n";
+	$attributes = sprintf('id="%s" lat="%1.6f" lon="%1.6f" version="999999999"', $ref, $lat, $lon);
+	if (!isset($nodetags[$ref])) {
+		echo sprintf('<node %s />', $attributes), "\n";
+	} else {
+		echo sprintf('<node %s>', $attributes), "\n";
+		foreach ($nodetags[$ref] as $k => $v) {
+			if (@$v == '') continue;
+			echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars($k), htmlspecialchars($v)), "\n";
+		}
+		echo '</node>', "\n";
+	}
 }
 
 foreach ($ways as $way) {
