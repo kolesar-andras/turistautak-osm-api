@@ -78,6 +78,26 @@ foreach ($rows as $myrow) {
 	}
 	
 	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
+	$tags['traces'] = $myrow['tracks'];
+	
+	switch ($myrow['code']) {
+		case 0x81:
+		case 0x82:
+		case 0x83:
+			$tags['highway'] = 'path';
+			break;
+
+		case 0x84:
+		case 0x85:
+			$tags['highway'] = 'track';
+			break;
+
+		case 0x93:
+		case 0x94:
+			$tags['highway'] = 'residential';
+			break;
+
+	}
 	
 	$ways[] = array(
 		'attr' => $attr,
@@ -102,6 +122,7 @@ foreach ($ways as $way) {
 		echo sprintf("<nd ref='%s' />", $ref), "\n";
 	}
 	foreach ($way['tags'] as $k => $v) {
+		if (@$v == '') continue;
 		echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars($k), htmlspecialchars($v)), "\n";
 	}
 	echo '</way>', "\n";
