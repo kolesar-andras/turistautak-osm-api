@@ -2,6 +2,7 @@
 
 require('../include_general.php');
 require('../include_arrays.php');
+require('../poi-type-array.inc.php');
 ini_set('display_errors', 1);
 
 try {
@@ -25,6 +26,63 @@ if ($area>0.25) throw new Exception('bbox too large');
 $nd = array();
 $nodetags = array();
 
+echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
+echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
+echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.6f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
+
+// poi
+$sql = sprintf("SELECT
+	poi.*,
+	poi_types.wp,
+	poi_types.name as typename
+	FROM geocaching.poi
+	LEFT JOIN geocaching.poi_types ON poi.type = poi_types.id
+	WHERE deleted=0
+	AND lon>=%1.6f
+	AND lat>=%1.6f
+	AND lon<=%1.6f
+	AND lat<=%1.6f",
+	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+
+$rows = array_query($sql);
+
+if (is_array($rows)) foreach ($rows as $myrow) {
+
+	$node = sprintf('%1.6f,%1.6f', $myrow['lat'], $myrow['lon']);
+	
+	if (isset($nd[$node])) {
+		$ref = $nd[$node];
+	} else {
+		$ref = str_replace('.', '', str_replace(',', '', $node));
+		$nd[$node] = $ref;
+	}
+	$ndrefs[] = $ref;
+	
+	$tags = array(
+		'Type' => sprintf('0x%02x %s', $myrow['code'], iconv('Windows-1250', 'UTF-8', $myrow['typename'])),
+		'Label' => iconv('Windows-1250', 'UTF-8', $myrow['nickname']),
+		'ID' => $myrow['id'],
+		'URL' => 'http://turistautak.hu/poi.php?id=' . $myrow['id'],
+		'Letrehozta' => $myrow['owner'],
+		'Letrehozva' => $myrow['dateinsterted'],
+		'Modositotta' => $myrow['useruploaded'],
+		'Modositva' => $myrow['dateuploaded'],
+		'ID' => $myrow['id'],
+		'Leiras' => iconv('Windows-1250', 'UTF-8', $myrow['fulldesc']),
+		'Megjegyzes' => iconv('Windows-1250', 'UTF-8', $myrow['notes']),
+	);
+
+	foreach (explode("\n", $myrow['attributes']) as $attribute) {
+		if (preg_match('/^([^=]+)=(.+)$/', $attribute, $regs)) {
+			$key = iconv('Windows-1250', 'UTF-8', $regs[1]);
+			$value = iconv('Windows-1250', 'UTF-8', $regs[2]);
+			$tags['POI:' . $key] = $value;
+		}
+	}
+	
+	$nodetags[$ref] = $tags;
+}
+
 // lines
 $sql = sprintf("SELECT * FROM segments
 	WHERE deleted=0
@@ -35,10 +93,6 @@ $sql = sprintf("SELECT * FROM segments
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
 $rows = array_query($sql);
-
-echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
-echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
-echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.6f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
 
 foreach ($rows as $myrow) {
 
@@ -295,7 +349,7 @@ foreach ($nd as $node => $ref) {
 		echo sprintf('<node %s>', $attributes), "\n";
 		foreach ($nodetags[$ref] as $k => $v) {
 			if (trim(@$v) == '') continue;
-			echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
+			echo sprintf('<tag k="%s" v="%s" />', htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
 		}
 		echo '</node>', "\n";
 	}
@@ -304,15 +358,15 @@ foreach ($nd as $node => $ref) {
 foreach ($ways as $way) {
 	$attrs = array();
 	foreach ($way['attr'] as $k => $v) {
-		$attrs[] = sprintf("%s='%s'", $k, htmlspecialchars($v));
+		$attrs[] = sprintf('%s="%s"', $k, htmlspecialchars($v));
 	}
 	echo sprintf('<way %s >', implode(' ', $attrs)), "\n";
 	foreach ($way['nd'] as $ref) {
-		echo sprintf("<nd ref='%s' />", $ref), "\n";
+		echo sprintf('<nd ref="%s" />', $ref), "\n";
 	}
 	foreach ($way['tags'] as $k => $v) {
 		if (trim(@$v) == '') continue;
-		echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
+		echo sprintf('<tag k="%s" v="%s" />', htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
 	}
 	echo '</way>', "\n";
 	

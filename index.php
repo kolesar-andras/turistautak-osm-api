@@ -18,6 +18,10 @@ switch ($url['path']) {
 		require_once('map.php');
 		break;
 		
+	case $base . 'map-dev':
+		require_once('map-dev.php');
+		break;
+		
 	case $base . 'notes':
 		require_once('notes.php');
 		break;
