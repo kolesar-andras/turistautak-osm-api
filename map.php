@@ -98,11 +98,7 @@ foreach ($rows as $myrow) {
 	}
 	
 	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
-	$tags['traces'] = @$myrow['tracks'];
-	$tags['name'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utcanev'] != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
-	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
-	$tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
-	
+
 	switch ($myrow['code']) {
 		case 0x81:
 		case 0x82:
@@ -235,6 +231,12 @@ foreach ($rows as $myrow) {
 			break;
 
 	}
+
+	$tags['traces'] = @$myrow['tracks'];
+	$tags['name'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['Utcanev']) != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
+	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
+	$tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
+	$tags['surface'] = burkolat(iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])));
 	
 	$ways[] = array(
 		'attr' => $attr,
@@ -252,8 +254,8 @@ foreach ($nd as $node => $ref) {
 	} else {
 		echo sprintf('<node %s>', $attributes), "\n";
 		foreach ($nodetags[$ref] as $k => $v) {
-			if (@$v == '') continue;
-			echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars($k), htmlspecialchars($v)), "\n";
+			if (trim(@$v) == '') continue;
+			echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
 		}
 		echo '</node>', "\n";
 	}
@@ -269,8 +271,8 @@ foreach ($ways as $way) {
 		echo sprintf("<nd ref='%s' />", $ref), "\n";
 	}
 	foreach ($way['tags'] as $k => $v) {
-		if (@$v == '') continue;
-		echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars($k), htmlspecialchars($v)), "\n";
+		if (trim(@$v) == '') continue;
+		echo sprintf("<tag k='%s' v='%s' />", htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
 	}
 	echo '</way>', "\n";
 	
@@ -354,4 +356,59 @@ function line_type ($code) {
 	);
 	
 	return @$codes[$code];
+}
+
+function burkolat ($code) {
+	
+	$codes = array(
+		'aszfalt' => 'asphalt',
+		'rossz aszfalt' => 'asphalt',
+		'beton' => 'concrete',
+		'makadám' => 'compacted',
+		'köves' => 'gravel',
+		'kavics' => 'pebblestone',
+		'homok' => 'sand',
+		'föld' => 'dirt',
+		'középen füves' => 'grass',
+		'fű' => 'grass',
+
+		'térkő' => 'paving_stones',
+		'murva' => 'gravel',
+		'kockakő' => 'cobblestone',
+		'zúzottkő' => 'gravel',
+		'sziklás' => 'rock',
+		'fa' => 'wood',
+		'gumi' => 'tartan',
+		'föld k. fű' => 'grass',
+		'homok k. fű' => 'grass',
+		'fold' => 'dirt',
+		'agyag' => 'clay',
+		'kisszemcsés-zúzottkő' => 'fine_gravel',
+		'kissz. zúzott' => 'fine_gravel',
+		'füves' => 'grass',
+		'vasbeton útpanel' => 'concrete:plates',
+		'kő lépcső' => '',
+		'kavics-kő' => 'gravel',
+		'kő' => 'gravel',
+		'terméskő, kitöltött' => 'gravel',
+		'macskakő' => 'cobblestone',
+		'kavicsos-köves' => 'gravel',
+		'idomkő, beton térkő' => 'paving_stones',
+		'Földes' => 'dirt',
+		'kőzúzalék' => 'gravel',
+		'fém' => 'metal',
+		'földes, kavicsos' => 'dirt',
+		'rossz beton' => 'concrete',
+		'palló' => '',
+		'beton lépcső' => 'concrete',
+		'utcakő' => 'cobblestone',
+		'agyagos homok' => 'sand',
+		'sóderos föld' => 'dirt',
+		'Földes, középen füve' => '',
+		'tönkrement aszfalt' => 'asphalt',
+
+	);
+	
+	return @$codes[$code];
+
 }
