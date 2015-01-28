@@ -351,6 +351,10 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			break;
 
 		case 0xa709:
+			$tags['internet_access'] = 'wlan';
+			break;
+
+		case 0xa70f:
 			$tags['amenity'] = 'police';
 			break;
 
@@ -523,10 +527,24 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xab02:
 			$tags['natural'] = 'tree';
+			if (@$tags['Label'] == 'Fa') $name = false;
+			break;
+
+		case 0xab03:
+			$tags['ford'] = 'yes';
+			if (@$tags['Label'] == 'Gázló') $name = false;
+			break;
+
+		case 0xab05:
+			$tags['natural'] = 'tree';
 			break;
 
 		case 0xab06:
 			$tags['barrier'] = 'yes';
+			break;
+
+		case 0xab07:
+			$tags['natural'] = 'cave_entrance';
 			break;
 
 		case 0xab0a:
@@ -540,12 +558,12 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xab0c:
 			$tags['natural'] = 'cliff';
-			$name = false;
+			if (@$tags['Label'] == 'Szikla') $name = false;
 			break;
 
 		case 0xab0d:
 			$tags['waterway'] = 'waterfall';
-			$name = false;
+			if (@$tags['Label'] == 'Vízesés') $name = false;
 			break;
 
 		case 0xac02:
@@ -585,10 +603,17 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['email'] = @$tags['POI:email'];
 	$tags['phone'] = @$tags['POI:telefon'];
 	$tags['fax'] = @$tags['POI:fax'];
+	$tags['website'] = @$tags['POI:web'];
 	$tags['addr:postcode'] = @$tags['POI:irányítószám'];
 	$tags['addr:street'] = @$tags['POI:cím'];
 	$tags['opening_hours'] = @$tags['POI:nyitvatartás'];
-	
+	$tags['operator'] = @$tags['POI:hálózat'];
+	$tags['gsm:LAC'] = @$tags['POI:lac'];
+	$tags['gsm:cellid'] = @$tags['POI:cid'];
+	$tags['gsm:cellid'] = @$tags['POI:cid'];
+	$tags['internet_access:ssid'] = @$tags['POI:essid'];
+	$tags['cave:ref'] = @$tags['POI:kataszteri szám'];
+
 	$nodetags[$ref] = $tags;
 }
 
