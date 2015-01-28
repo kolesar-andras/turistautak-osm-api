@@ -83,6 +83,9 @@ foreach ($rows as $myrow) {
 	);
 	
 	$tags = array();
+
+	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
+
 	foreach ($GLOBALS['segment_attributes'] as $id => $array) {
 
 		if (null !== $array[1]) {
@@ -97,7 +100,7 @@ foreach ($rows as $myrow) {
 		
 	}
 	
-	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
+	$tags['[----------]'] = '[----------]';
 
 	switch ($myrow['code']) {
 		case 0x81:
@@ -273,7 +276,7 @@ foreach ($rows as $myrow) {
 	
 	$tags['maxweight'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSuly']));
 	$tags['maxweight'] = preg_replace("/([0-9])([a-z]+)$/i", '\1 \2', trim($tags['maxweight']));
-		
+			
 	$ways[] = array(
 		'attr' => $attr,
 		'nd' => $ndrefs,
