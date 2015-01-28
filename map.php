@@ -254,6 +254,8 @@ foreach ($rows as $myrow) {
 			if ($smoothness != '') $tags['smoothness'] = $smoothness;
 		}
 
+		if (@$myrow['JarhatosagBiciklivel'] == 'A' &&
+			($tags['highway'] == 'cycleway' || @$myrow['JarhatosagAutoval'] == '')) $tags['smoothness'] = 'good';
 		if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
 		if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
 		if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
