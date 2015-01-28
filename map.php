@@ -125,6 +125,10 @@ foreach ($rows as $myrow) {
 			$tags['highway'] = 'footway';
 			break;
 
+		case 0x92:
+			$tags['highway'] = 'cycleway';
+			break;
+
 		case 0x93:
 		case 0x94:
 			$tags['highway'] = 'residential';
@@ -243,17 +247,22 @@ foreach ($rows as $myrow) {
 	}
 
 	// vannak autós-bicicklis járhatósági paraméterek vasúton, ezt nem kérjük
-	if (!isset($tags['railway'])) {
-		$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
-		if ($smoothness != '') $tags['smoothness'] = $smoothness;
+	if (!isset($tags['railway']) && $tags['highway'] != 'steps') {
+
+		if ($tags['highway'] != 'footway' && $tags['highway'] != 'path' && $tags['highway'] != 'cycleway') {
+			$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
+			if ($smoothness != '') $tags['smoothness'] = $smoothness;
+		}
 
 		if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
 		if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
 		if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
 
-		if (@$myrow['BehajtasAutoval'] == 'B') $tags['toll'] = 'yes';
-		if (@$myrow['BehajtasAutoval'] == 'C') $tags['motor_vehicle'] = 'private';
-		if (@$myrow['BehajtasAutoval'] == 'D') $tags['motor_vehicle'] = 'no';
+		if ($tags['highway'] != 'footway' && $tags['highway'] != 'path' && $tags['highway'] != 'cycleway') {
+			if (@$myrow['BehajtasAutoval'] == 'B') $tags['toll'] = 'yes';
+			if (@$myrow['BehajtasAutoval'] == 'C') $tags['motor_vehicle'] = 'private';
+			if (@$myrow['BehajtasAutoval'] == 'D') $tags['motor_vehicle'] = 'no';
+		}
 
 		if (@$myrow['BehajtasBiciklivel'] == 'B') $tags['toll:bicycle'] = 'yes';
 		if (@$myrow['BehajtasBiciklivel'] == 'C') $tags['bicycle'] = 'private';
