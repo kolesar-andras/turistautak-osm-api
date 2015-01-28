@@ -225,7 +225,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xa502:
 			$tags['historic'] = 'wayside_cross';
-			$name = false;
+			if (in_array(@$tags['Label'], array('Kereszt', 'Feszület'))) $name = false;
 			break;
 
 		case 0xa503:
@@ -445,7 +445,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			break;
 
 		case 0xaa14:
-			$tags['barrier'] = 'gate';
+			$tags['barrier'] = 'lift_gate';
 			$name = false;
 			break;
 
@@ -488,12 +488,17 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xaa11:
 			$tags['tourism'] = 'picnic_site';
-			if (!in_array(@$tags['Label'], array('Pihenőhely', 'Pihenő'))) $name = false;
+			if (in_array(@$tags['Label'], array('Pihenőhely', 'Pihenő'))) $name = false;
 			break;
 
 		case 0xaa12:
 			$tags['amenity'] = 'bench';
 			if (@$tags['Label'] == 'Pad') $name = false;
+			break;
+
+		case 0xaa13:
+			$tags['fireplace'] = 'yes';
+			if (@$tags['Label'] == 'Tűzrakóhely') $name = false;
 			break;
 
 		case 0xaa16:
@@ -596,12 +601,13 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			break;
 			
 		case 0xae01:
+		case 0xae06:
 			$tags['place'] = 'locality';
 			break;
 						
 	}
 	
-	if ($name !== false) $tags['name'] = $tags['Label'];
+	if ($name !== false) $tags['name'] = preg_replace('/ \.\.$/', '', $tags['Label']);
 	$tags['url'] = 'http://turistautak.hu/poi.php?id=' . $myrow['id'];
 	
 	$tags['email'] = @$tags['POI:email'];
