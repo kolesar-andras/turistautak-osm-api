@@ -239,7 +239,7 @@ foreach ($rows as $myrow) {
 	$tags['traces'] = @$myrow['tracks'];
 	$tags['name'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['Utcanev']) != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
 	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
-	$tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
+	if (@$tags['junction'] != 'roundabout') $tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
 	$tags['surface'] = burkolat(iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])));
 	
 	if (preg_match('/rossz|tönkrement/', iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])))) {
