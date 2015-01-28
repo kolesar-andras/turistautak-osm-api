@@ -3,7 +3,7 @@
 require('../include_general.php');
 require('../include_arrays.php');
 require('../poi-type-array.inc.php');
-ini_set('display_errors', 1);
+ini_set('display_errors', 0);
 
 try {
 
@@ -41,7 +41,9 @@ $sql = sprintf("SELECT
 	AND lon>=%1.6f
 	AND lat>=%1.6f
 	AND lon<=%1.6f
-	AND lat<=%1.6f",
+	AND lat<=%1.6f
+	AND poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)
+	",
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
 $rows = array_query($sql);
@@ -62,7 +64,6 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		'Type' => sprintf('0x%02x %s', $myrow['code'], iconv('Windows-1250', 'UTF-8', $myrow['typename'])),
 		'Label' => iconv('Windows-1250', 'UTF-8', $myrow['nickname']),
 		'ID' => $myrow['id'],
-		'URL' => 'http://turistautak.hu/poi.php?id=' . $myrow['id'],
 		'Letrehozta' => $myrow['owner'],
 		'Letrehozva' => $myrow['dateinsterted'],
 		'Modositotta' => $myrow['useruploaded'],
@@ -81,44 +82,512 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	}
 
 	$tags['[----------]'] = '[----------]';
+	$name = null;
 	
 	switch (@$myrow['code']) {
+
+		case 0xa006:
+			$tags['place'] = 'suburb';
+			break;
+
+		case 0xa101:
+			$tags['shop'] = 'convenience';
+			break;
+
+		case 0xa102:
+			$tags['shop'] = 'mall';
+			break;
+
+		case 0xa103:
+			$tags['amenity'] = 'restaurant';
+			break;
+
+		case 0xa104:
+			$tags['amenity'] = 'fast_food';
+			break;
+
+		case 0xa105:
+			$tags['amenity'] = 'pub';
+			break;
+		
+		case 0xa106:
+			$tags['amenity'] = 'cafe';
+			break;
+
+		case 0xa107:
+			$tags['shop'] = 'confectionery';
+			break;
+
+		case 0xa108:
+			$tags['craft'] = 'winery';
+			break;
+
+		case 0xa109:
+			$tags['amenity'] = 'fast_food';
+			break;
+
+		case 0xa10a:
+			$tags['shop'] = 'bakery';
+			break;
+
+		case 0xa10b:
+			$tags['shop'] = 'greengrocer';
+			break;
+
+		case 0xa10c:
+			$tags['shop'] = 'butcher';
+			break;
 
 		case 0xa202:
 			$tags['natural'] = 'spring';
 			break;
 
+		case 0xa203:
+			$tags['natural'] = 'spring';
+			$tags['intermittent'] = 'yes';
+			break;
+
+		case 0xa205:
+			$tags['amenity'] = 'drinking_water';
+			$name = false;
+			break;
+
+		case 0xa206:
+			$tags['disused:amenity'] = 'drinking_water';
+			$name = false;
+			break;
+
 		case 0xa207:
 			$tags['emergency'] = 'fire_hydrant';
+			$name = false;
+			break;
+
+		case 0xa208:
+			$tags['amenity'] = 'fountain';
+			$name = false;
+			break;
+
+		case 0xa300:
+		case 0xa301:
+			$tags['building'] = 'yes';
+			break;
+
+		case 0xa302:
+			$tags['tourism'] = 'museum';
+			break;
+
+		case 0xa303:
+			$tags['amenity'] = 'place_of_worship';
+			$tags['building'] = 'church';
+			break;
+
+		case 0xa304:
+			$tags['building'] = 'chapel';
+			break;
+
+		case 0xa305:
+			$tags['amenity'] = 'place_of_worship';
+			$tags['religion'] = 'jewish';
+			break;
+
+		case 0xa306:
+			$tags['amenity'] = 'school';
+			break;
+
+		case 0xa307:
+		case 0xa308:
+			$tags['historic'] = 'castle';
+			break;
+
+		case 0xa401:
+			$tags['tourism'] = 'hotel';
+			break;
+
+		case 0xa400:
+		case 0xa402:
+		case 0xa403:
+		case 0xa405:
+			$tags['tourism'] = 'guest_house';
+			break;
+
+		case 0xa404:
+			$tags['tourism'] = 'camp_site';
+			break;
+
+		case 0xa501:
+			$tags['historic'] = 'memorial';
+			$tags['memorial'] = 'plaque';
+			break;
+
+		case 0xa502:
+			$tags['historic'] = 'wayside_cross';
+			$name = false;
+			break;
+
+		case 0xa503:
+			$tags['historic'] = 'memorial';
+			break;
+
+		case 0xa504:
+			$tags['tourism'] = 'artwork'; // ???
+			break;
+
+		case 0xa506:
+			$tags['historic'] = 'wayside_shrine';
+			break;
+
+		case 0xa602:
+			$tags['highway'] = 'bus_stop';
+			break;
+
+		case 0xa603:
+			$tags['railway'] = 'tram_stop';
+			break;
+
+		case 0xa604:
+		case 0xa605:
+			$tags['railway'] = 'station';
+			break;
+
+		case 0xa606:
+			$tags['railway'] = 'halt';
+			break;
+
+		case 0xa607:
+			$tags['barrier'] = 'border_control';
+			break;
+
+		case 0xa608:
+		case 0xa60a:
+			$tags['amenity'] = 'ferry_terminal';
+			break;
+
+		case 0xa609:
+			$tags['leisure'] = 'marina';
+			break;
+
+		case 0xa60a:
+			$tags['railway'] = 'level_crossing';
+			$name = false;
+			break;
+
+		case 0xa60b:
+			$tags['aeroway'] = 'areodrome';
+			break;
+
+		case 0xa60e:
+			$tags['highway'] = 'speed_camera';
+			$name = false;
+			break;
+
+		case 0xa60f:
+			$tags['amenity'] = 'bus_station';
+			break;
+
+		case 0xa610:
+			$tags['railway'] = 'level_crossing';
+			$name = false;
+			break;
+
+		case 0xa611:
+			$tags['highway'] = 'motorway_junction';
+			break;
+
+		case 0xa612:
+			$tags['amenity'] = 'taxi';
+			$name = false;
+			break;
+
+		case 0xa701:
+			$tags['shop'] = 'yes';
+			break;
+
+		case 0xa702:
+			$tags['amenity'] = 'atm';
+			break;
+
+		case 0xa703:
+			$tags['amenity'] = 'bank';
+			break;
+
+		case 0xa704:
+			$tags['amenity'] = 'fuel';
+			break;
+
+		case 0xa705:
+			$tags['amenity'] = 'hospital';
+			break;
+
+		case 0xa706:
+			$tags['amenity'] = 'doctors';
+			break;
+
+		case 0xa707:
+			$tags['amenity'] = 'pharmacy';
 			break;
 
 		case 0xa70a:
 			$tags['amenity'] = 'telephone';
+			$name = false;
+			break;
+
+		case 0xa70b:
+			$tags['amenity'] = 'parking';
+			if (@$tags['Label'] == 'Parkoló') $name = false;
+			break;
+
+		case 0xa70c:
+			$tags['amenity'] = 'post_office';
+			$name = false;
+			break;
+
+		case 0xa70d:
+			$tags['amenity'] = 'post_box';
+			$name = false;
+			break;
+
+		case 0xa708:
+			$tags['office'] = 'government';
+			break;
+
+		case 0xa709:
+			$tags['amenity'] = 'police';
+			break;
+
+		case 0xa710:
+			$tags['amenity'] = 'fire_station';
+			break;
+
+		case 0xa711:
+			$tags['emergency'] = 'ambulance_station';
+			break;
+
+		case 0xa712:
+			$tags['shop'] = 'car_repair';
+			break;
+
+		case 0xa713:
+			$tags['shop'] = 'bicycle';
+			break;
+
+		case 0xa714:
+			$tags['amenity'] = 'toilets';
+			$name = false;
+			break;
+
+		case 0xa717:
+			$tags['amenity'] = 'marketplace';
+			break;
+
+		case 0xa718:
+			$tags['tourism'] = 'information';
+			break;
+
+		case 0xa71c:
+			$tags['amenity'] = 'bureau_de_change';
+			break;
+
+		case 0xa806:
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'tennis';
+			break;
+
+		case 0xa809:
+			$tags['sport'] = 'swimming';
+			break;
+
+		case 0xa810:
+			$tags['leisure'] = 'pitch';
+			break;
+
+		case 0xa901:
+			$tags['amenity'] = 'theatre';
+			break;
+
+		case 0xa902:
+			$tags['amenity'] = 'cinema';
+			break;
+
+		case 0xa903:
+			$tags['amenity'] = 'library';
+			break;
+
+		case 0xa905:
+			$tags['tourism'] = 'zoo';
+			break;
+
+		case 0xa908:
+			$tags['tourism'] = 'attraction';
+			break;
+
+		case 0xaa06:
+			$tags['man_made'] = 'tower';
+			$tags['tower_type'] = 'communication';
+			$name = false;
+			break;
+
+		case 0xaa07:
+			$tags['man_made'] = 'chimney';
+			$name = false;
 			break;
 
 		case 0xaa08:
 			$tags['man_made'] = 'water_tower';
-			break;
-
-		case 0xaa14:
-			$tags['man_made'] = 'tower';
-			$tags['tower_type'] = 'communication';
+			$name = false;
 			break;
 
 		case 0xaa14:
 			$tags['barrier'] = 'gate';
+			$name = false;
 			break;
 
 		case 0xaa2a:
 			$tags['highway'] = 'milestone';
+			$name = false;
+			break;
+
+		case 0xaa03:
+			$tags['man_made'] = 'works';
+			$name = false;
+			break;
+
+		case 0xaa0a:
+			$tags['amenity'] = 'shelter';
+			$name = false;
+			break;
+
+		case 0xaa0c:
+			$tags['information'] = 'board';
+			$name = false;
+			break;
+
+		case 0xaa0e:
+			$tags['barrier'] = 'gate';
+			$name = false;
+			break;
+
+		case 0xaa0f:
+			$tags['man_made'] = 'tower';
+			$tags['tower_type'] = 'observation';
+			$tags['tourism'] = 'viewpoint';
 			break;
 
 		case 0xaa10:
 			$tags['amenity'] = 'hunting_stand';
 			if (preg_match('/fedett/i', @$tags['Label'])) $tags['shelter'] = 'yes';
+			$name = false;
+			break;
+
+		case 0xaa11:
+			$tags['tourism'] = 'picnic_site';
+			if (!in_array(@$tags['Label'], array('Pihenőhely', 'Pihenő'))) $name = false;
+			break;
+
+		case 0xaa12:
+			$tags['amenity'] = 'bench';
+			if (@$tags['Label'] == 'Pad') $name = false;
+			break;
+
+		case 0xaa16:
+			$tags['man_made'] = 'survey_point';
+			$name = false;
+			break;
+
+		case 0xaa17:
+			$tags['historic'] = 'boundary_stone';
+			if (@$tags['Label'] == 'Határkő') $name = false;
+			break;
+
+		case 0xaa2b:
+			$tags['ruins'] = 'yes';
+			break;
+
+		case 0xaa2d:
+			$tags['man_made'] = 'tower';
+			break;
+
+		case 0xaa34:
+			$tags['man_made'] = 'water_works';
+			$name = false;
+			break;
+
+		case 0xaa36:
+			$tags['power'] = 'transformer';
+			$name = false;
+			break;
+
+		case 0xaa37:
+			$tags['leisure'] = 'playground';
+			if (@$tags['Label'] == 'Játszótér') $name = false;
+			break;
+
+		case 0xab02:
+			$tags['natural'] = 'tree';
+			break;
+
+		case 0xab06:
+			$tags['barrier'] = 'yes';
+			break;
+
+		case 0xab0a:
+			$tags['natural'] = 'peak';
+			break;
+
+		case 0xab0b:
+			$tags['tourism'] = 'viewpoint';
+			$name = false;
+			break;
+
+		case 0xab0c:
+			$tags['natural'] = 'cliff';
+			$name = false;
+			break;
+
+		case 0xab0d:
+			$tags['waterway'] = 'waterfall';
+			$name = false;
+			break;
+
+		case 0xac02:
+			$tags['amenity'] = 'recycling';
+			$name = false;
+			break;
+
+		case 0xac03:
+			$tags['amenity'] = 'waste_transfer_station';
+			$name = false;
 			break;
 			
+		case 0xac04:
+			$tags['amenity'] = 'waste_basket';
+			$name = false;
+			break;
+
+		case 0xac05:
+			$tags['amenity'] = 'waste_disposal';
+			$name = false;
+			break;
+
+		case 0xad01:
+			$tags['checkpoint'] = 'hiking';
+			$tags['checkpoint:type'] = 'stamp';
+			break;
+			
+		case 0xae01:
+			$tags['place'] = 'locality';
+			break;
+						
 	}
+	
+	if ($name !== false) $tags['name'] = $tags['Label'];
+	$tags['url'] = 'http://turistautak.hu/poi.php?id=' . $myrow['id'];
+	
+	$tags['email'] = @$tags['POI:email'];
+	$tags['phone'] = @$tags['POI:telefon'];
+	$tags['fax'] = @$tags['POI:fax'];
+	$tags['addr:postcode'] = @$tags['POI:irányítószám'];
+	$tags['addr:street'] = @$tags['POI:cím'];
+	$tags['opening_hours'] = @$tags['POI:nyitvatartás'];
 	
 	$nodetags[$ref] = $tags;
 }
@@ -310,6 +779,8 @@ foreach ($rows as $myrow) {
 			break;
 
 		case 0xc7:
+		case 0xc8:
+		case 0xc9:
 			$tags['aerialway'] = 'chair_lift';
 			break;
 
