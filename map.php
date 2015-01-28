@@ -210,6 +210,10 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$tags['tourism'] = 'guest_house';
 			break;
 
+		case 0xa406:
+			$tags['tourism'] = 'chalet';
+			break;
+
 		case 0xa404:
 			$tags['tourism'] = 'camp_site';
 			break;
