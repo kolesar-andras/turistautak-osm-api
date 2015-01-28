@@ -242,20 +242,23 @@ foreach ($rows as $myrow) {
 		$tags['smoothness'] = 'bad';
 	}
 
-	$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
-	if ($smoothness != '') $tags['smoothness'] = $smoothness;
+	// vannak autós-bicicklis járhatósági paraméterek vasúton, ezt nem kérjük
+	if (!isset($tags['railway'])) {
+		$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
+		if ($smoothness != '') $tags['smoothness'] = $smoothness;
 
-	if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
-	if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
-	if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
+		if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
+		if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
+		if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
 
-	if (@$myrow['BehajtasAutoval'] == 'B') $tags['toll'] = 'yes';
-	if (@$myrow['BehajtasAutoval'] == 'C') $tags['motor_vehicle'] = 'private';
-	if (@$myrow['BehajtasAutoval'] == 'D') $tags['motor_vehicle'] = 'no';
+		if (@$myrow['BehajtasAutoval'] == 'B') $tags['toll'] = 'yes';
+		if (@$myrow['BehajtasAutoval'] == 'C') $tags['motor_vehicle'] = 'private';
+		if (@$myrow['BehajtasAutoval'] == 'D') $tags['motor_vehicle'] = 'no';
 
-	if (@$myrow['BehajtasBiciklivel'] == 'B') $tags['toll:bicycle'] = 'yes';
-	if (@$myrow['BehajtasBiciklivel'] == 'C') $tags['bicycle'] = 'private';
-	if (@$myrow['BehajtasBiciklivel'] == 'D') $tags['bicycle'] = 'no';
+		if (@$myrow['BehajtasBiciklivel'] == 'B') $tags['toll:bicycle'] = 'yes';
+		if (@$myrow['BehajtasBiciklivel'] == 'C') $tags['bicycle'] = 'private';
+		if (@$myrow['BehajtasBiciklivel'] == 'D') $tags['bicycle'] = 'no';
+	}
 	
 	$tags['maxweight'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSuly']));
 	$tags['maxweight'] = preg_replace("/([0-9])([a-z]+)$/i", '\1 \2', trim($tags['maxweight']));
