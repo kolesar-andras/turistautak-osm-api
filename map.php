@@ -256,6 +256,9 @@ foreach ($rows as $myrow) {
 	if (@$myrow['BehajtasBiciklivel'] == 'B') $tags['toll:bicycle'] = 'yes';
 	if (@$myrow['BehajtasBiciklivel'] == 'C') $tags['bicycle'] = 'private';
 	if (@$myrow['BehajtasBiciklivel'] == 'D') $tags['bicycle'] = 'no';
+	
+	$tags['maxweight'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSuly']));
+	$tags['maxweight'] = preg_replace("/([0-9])([a-z]+)$/i", '\1 \2', trim($tags['maxweight']));
 		
 	$ways[] = array(
 		'attr' => $attr,
