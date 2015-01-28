@@ -244,6 +244,7 @@ foreach ($rows as $myrow) {
 	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
 	if (@$tags['junction'] != 'roundabout') $tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
 	$tags['surface'] = burkolat(iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])));
+	$tags['maxspeed'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSebesseg']));
 	
 	if (preg_match('/rossz|tönkrement/', iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])))) {
 		$tags['smoothness'] = 'bad';
