@@ -36,7 +36,7 @@ $sql = sprintf("SELECT
 	poi_types.wp,
 	poi_types.name as typename
 	FROM geocaching.poi
-	LEFT JOIN geocaching.poi_types ON poi.type = poi_types.id
+	LEFT JOIN geocaching.poi_types ON poi.code = poi_types.code
 	WHERE deleted=0
 	AND lon>=%1.6f
 	AND lat>=%1.6f
@@ -78,6 +78,46 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$value = iconv('Windows-1250', 'UTF-8', $regs[2]);
 			$tags['POI:' . $key] = $value;
 		}
+	}
+
+	$tags['[----------]'] = '[----------]';
+	
+	switch (@$myrow['code']) {
+
+		case 0xa202:
+			$tags['natural'] = 'spring';
+			break;
+
+		case 0xa207:
+			$tags['emergency'] = 'fire_hydrant';
+			break;
+
+		case 0xa70a:
+			$tags['amenity'] = 'telephone';
+			break;
+
+		case 0xaa08:
+			$tags['man_made'] = 'water_tower';
+			break;
+
+		case 0xaa14:
+			$tags['man_made'] = 'tower';
+			$tags['tower_type'] = 'communication';
+			break;
+
+		case 0xaa14:
+			$tags['barrier'] = 'gate';
+			break;
+
+		case 0xaa2a:
+			$tags['highway'] = 'milestone';
+			break;
+
+		case 0xaa10:
+			$tags['amenity'] = 'hunting_stand';
+			if (preg_match('/fedett/i', @$tags['Label'])) $tags['shelter'] = 'yes';
+			break;
+			
 	}
 	
 	$nodetags[$ref] = $tags;
