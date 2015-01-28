@@ -248,6 +248,14 @@ foreach ($rows as $myrow) {
 	if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
 	if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
 	if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
+
+	if (@$myrow['BehajtasAutoval'] == 'B') $tags['toll'] = 'yes';
+	if (@$myrow['BehajtasAutoval'] == 'C') $tags['motor_vehicle'] = 'private';
+	if (@$myrow['BehajtasAutoval'] == 'D') $tags['motor_vehicle'] = 'no';
+
+	if (@$myrow['BehajtasBiciklivel'] == 'B') $tags['toll:bicycle'] = 'yes';
+	if (@$myrow['BehajtasBiciklivel'] == 'C') $tags['bicycle'] = 'private';
+	if (@$myrow['BehajtasBiciklivel'] == 'D') $tags['bicycle'] = 'no';
 		
 	$ways[] = array(
 		'attr' => $attr,
