@@ -238,6 +238,17 @@ foreach ($rows as $myrow) {
 	$tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
 	$tags['surface'] = burkolat(iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])));
 	
+	if (preg_match('/rossz|tönkrement/', iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])))) {
+		$tags['smoothness'] = 'bad';
+	}
+
+	$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
+	if ($smoothness != '') $tags['smoothness'] = $smoothness;
+
+	if (@$myrow['JarhatosagBiciklivel'] == 'B') $tags['smoothness'] = 'bad';
+	if (@$myrow['JarhatosagBiciklivel'] == 'C') $tags['smoothness'] = 'horrible';
+	if (@$myrow['JarhatosagBiciklivel'] == 'D') $tags['smoothness'] = 'impassable';
+		
 	$ways[] = array(
 		'attr' => $attr,
 		'nd' => $ndrefs,
@@ -407,6 +418,19 @@ function burkolat ($code) {
 		'Földes, középen füve' => '',
 		'tönkrement aszfalt' => 'asphalt',
 
+	);
+	
+	return @$codes[$code];
+
+}
+
+function JarhatosagAutoval ($code) {
+	
+	$codes = array(
+		'A' => 'good',
+		'B' => 'bad',
+		'C' => 'very_bad',
+		'D' => 'very_horrible',
 	);
 	
 	return @$codes[$code];
