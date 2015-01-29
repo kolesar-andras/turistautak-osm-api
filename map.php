@@ -712,7 +712,21 @@ foreach ($rows as $myrow) {
 	$tags['Letrehozta'] = sprintf('%d %s', $myrow['userinserted'], tr($myrow['userinsertedname']));
 	if (isset($tags['Modositotta']))
 		$tags['Modositotta'] = sprintf('%d %s', $myrow['usermodified'], tr($myrow['usermodifiedname']));
-	
+		
+	// törlünk címkéket
+	unset($tags['Del']);
+	unset($tags['Csatlakozik']);
+	unset($tags['EmelkedesOda']);
+	unset($tags['EmelkedesVissza']);
+	unset($tags['Hossz']);
+	unset($tags['HosszFerde']);
+
+	// ezt csak akkor, ha nincs
+	if (!$tags['Ivelve']) unset($tags['Ivelve']);
+	if (!$tags['MindenElag']) unset($tags['MindenElag']);
+	if (!$tags['DirIndicator']) unset($tags['DirIndicator']);
+	if (!$tags['Zsakutca']) unset($tags['Zsakutca']);
+
 	$tags['[----------]'] = '[----------]';
 
 	switch ($myrow['code']) {
@@ -892,6 +906,9 @@ foreach ($rows as $myrow) {
 	
 	$tags['maxweight'] = tr(trim(@$myrow['KorlatozasSuly']));
 	$tags['maxweight'] = preg_replace("/([0-9])([a-z]+)$/i", '\1 \2', trim($tags['maxweight']));
+
+	if ($myrow['Ivelve']) $tags['complete:curves'] = 'yes';
+	if ($myrow['MindenElag']) $tags['complete:intersections'] = 'yes';
 			
 	$ways[] = array(
 		'attr' => $attr,
