@@ -634,6 +634,9 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['internet_access:ssid'] = @$tags['POI:essid'];
 	$tags['cave:ref'] = @$tags['POI:kataszteri szám'];
 
+	// forrás
+	$tags['source'] = 'turistautak.hu';
+
 	$nodetags[$ref] = $tags;
 }
 
@@ -732,6 +735,9 @@ foreach ($rows as $myrow) {
 	if (!$tags['MindenElag']) unset($tags['MindenElag']);
 	if (!$tags['DirIndicator']) unset($tags['DirIndicator']);
 	if (!$tags['Zsakutca']) unset($tags['Zsakutca']);
+	
+	// forrás
+	$tags['source'] = 'turistautak.hu';
 
 	$tags['[----------]'] = '[----------]';
 
