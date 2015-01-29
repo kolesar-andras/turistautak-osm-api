@@ -615,7 +615,13 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['url'] = 'http://turistautak.hu/poi.php?id=' . $myrow['id'];
 	
 	$tags['email'] = @$tags['POI:email'];
-	$tags['phone'] = @$tags['POI:telefon'];
+
+	if (@$tags['POI:telefon'] != '' && $tags['POI:mobil'] != '' && $tags['POI:telefon'] != $tags['POI:mobil']) {
+		$tags['phone'] = $tags['POI:telefon'] . '; ' . $tags['POI:mobil'];
+	} else {
+		$tags['phone'] = @$tags['POI:telefon'] != '' ? $tags['POI:telefon'] : $tags['POI:mobil'];
+	}
+
 	$tags['fax'] = @$tags['POI:fax'];
 	$tags['website'] = @$tags['POI:web'];
 	$tags['addr:postcode'] = @$tags['POI:irányítószám'];
