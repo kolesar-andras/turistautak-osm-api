@@ -883,7 +883,7 @@ foreach ($rows as $myrow) {
 	$tags['traces'] = @$myrow['tracks'];
 	$tags['name'] = tr(trim(@$myrow['Utcanev']) != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
 	$tags['ref'] = tr(@$myrow['Utnev']);
-	if (@$tags['junction'] != 'roundabout') $tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
+	if (@$tags['junction'] != 'roundabout' && !isset($tags['waterway'])) $tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
 	$tags['surface'] = burkolat(tr(trim(@$myrow['Burkolat'])));
 	$tags['maxspeed'] = tr(trim(@$myrow['KorlatozasSebesseg']));
 	
