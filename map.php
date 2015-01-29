@@ -34,14 +34,18 @@ echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.
 $sql = sprintf("SELECT
 	poi.*,
 	poi_types.wp,
-	poi_types.name as typename
+	poi_types.name AS typename,
+	owner.member AS ownername,
+	useruploaded.member AS useruploadedname
 	FROM geocaching.poi
 	LEFT JOIN geocaching.poi_types ON poi.code = poi_types.code
-	WHERE deleted=0
-	AND lon>=%1.6f
-	AND lat>=%1.6f
-	AND lon<=%1.6f
-	AND lat<=%1.6f
+	LEFT JOIN geocaching.users AS owner ON poi.owner = owner.id
+	LEFT JOIN geocaching.users AS useruploaded ON poi.useruploaded = useruploaded.id
+	WHERE poi.deleted=0
+	AND poi.lon>=%1.6f
+	AND poi.lat>=%1.6f
+	AND poi.lon<=%1.6f
+	AND poi.lat<=%1.6f
 	AND poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)
 	",
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
@@ -61,22 +65,22 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$ndrefs[] = $ref;
 	
 	$tags = array(
-		'Type' => sprintf('0x%02x %s', $myrow['code'], iconv('Windows-1250', 'UTF-8', $myrow['typename'])),
-		'Label' => iconv('Windows-1250', 'UTF-8', $myrow['nickname']),
+		'Type' => sprintf('0x%02x %s', $myrow['code'], tr($myrow['typename'])),
+		'Label' => tr($myrow['nickname']),
 		'ID' => $myrow['id'],
-		'Letrehozta' => $myrow['owner'],
+		'Letrehozta' => sprintf('%d %s', $myrow['owner'], tr($myrow['ownername'])),
 		'Letrehozva' => $myrow['dateinsterted'],
-		'Modositotta' => $myrow['useruploaded'],
+		'Modositotta' => sprintf('%d %s', $myrow['useruploaded'], tr($myrow['useruploadedname'])),
 		'Modositva' => $myrow['dateuploaded'],
 		'ID' => $myrow['id'],
-		'Leiras' => iconv('Windows-1250', 'UTF-8', $myrow['fulldesc']),
-		'Megjegyzes' => iconv('Windows-1250', 'UTF-8', $myrow['notes']),
+		'Leiras' => tr($myrow['fulldesc']),
+		'Megjegyzes' => tr($myrow['notes']),
 	);
 
 	foreach (explode("\n", $myrow['attributes']) as $attribute) {
 		if (preg_match('/^([^=]+)=(.+)$/', $attribute, $regs)) {
-			$key = iconv('Windows-1250', 'UTF-8', $regs[1]);
-			$value = iconv('Windows-1250', 'UTF-8', $regs[2]);
+			$key = tr($regs[1]);
+			$value = tr($regs[2]);
 			$tags['POI:' . $key] = $value;
 		}
 	}
@@ -628,7 +632,13 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 }
 
 // lines
-$sql = sprintf("SELECT * FROM segments
+$sql = sprintf("SELECT 
+	segments.*,
+	userinserted.member AS userinsertedname,
+	usermodified.member AS usermodifiedname
+	FROM segments
+	LEFT JOIN geocaching.users AS userinserted ON segments.userinserted = userinserted.id
+	LEFT JOIN geocaching.users AS usermodified ON segments.usermodified = usermodified.id
 	WHERE deleted=0
 	AND lon_max>=%1.6f
 	AND lat_max>=%1.6f
@@ -693,10 +703,15 @@ foreach ($rows as $myrow) {
 		}
 
 		if (!is_null(@$myrow[$field])) {
-			$tags[$id] = iconv('Windows-1250', 'UTF-8', $myrow[$field]);
+			$tags[$id] = tr($myrow[$field]);
 		}
 		
 	}
+
+	// felülírunk címkéket	
+	$tags['Letrehozta'] = sprintf('%d %s', $myrow['userinserted'], tr($myrow['userinsertedname']));
+	if (isset($tags['Modositotta']))
+		$tags['Modositotta'] = sprintf('%d %s', $myrow['usermodified'], tr($myrow['usermodifiedname']));
 	
 	$tags['[----------]'] = '[----------]';
 
@@ -840,13 +855,13 @@ foreach ($rows as $myrow) {
 	}
 
 	$tags['traces'] = @$myrow['tracks'];
-	$tags['name'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['Utcanev']) != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
-	$tags['ref'] = iconv('Windows-1250', 'UTF-8', @$myrow['Utnev']);
+	$tags['name'] = tr(trim(@$myrow['Utcanev']) != '' ? $myrow['Utcanev'] : @$myrow['Nev']);
+	$tags['ref'] = tr(@$myrow['Utnev']);
 	if (@$tags['junction'] != 'roundabout') $tags['oneway'] = @$myrow['dirindicator'] == '1' ? 'yes' : null;
-	$tags['surface'] = burkolat(iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])));
-	$tags['maxspeed'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSebesseg']));
+	$tags['surface'] = burkolat(tr(trim(@$myrow['Burkolat'])));
+	$tags['maxspeed'] = tr(trim(@$myrow['KorlatozasSebesseg']));
 	
-	if (preg_match('/rossz|tönkrement/', iconv('Windows-1250', 'UTF-8', trim(@$myrow['Burkolat'])))) {
+	if (preg_match('/rossz|tönkrement/', tr(trim(@$myrow['Burkolat'])))) {
 		$tags['smoothness'] = 'bad';
 	}
 
@@ -854,7 +869,7 @@ foreach ($rows as $myrow) {
 	if (!isset($tags['railway']) && $tags['highway'] != 'steps') {
 
 		if ($tags['highway'] != 'footway' && $tags['highway'] != 'path' && $tags['highway'] != 'cycleway') {
-			$smoothness = JarhatosagAutoval(iconv('Windows-1250', 'UTF-8', trim(@$myrow['JarhatosagAutoval'])));
+			$smoothness = JarhatosagAutoval(tr(trim(@$myrow['JarhatosagAutoval'])));
 			if ($smoothness != '') $tags['smoothness'] = $smoothness;
 		}
 
@@ -875,7 +890,7 @@ foreach ($rows as $myrow) {
 		if (@$myrow['BehajtasBiciklivel'] == 'D') $tags['bicycle'] = 'no';
 	}
 	
-	$tags['maxweight'] = iconv('Windows-1250', 'UTF-8', trim(@$myrow['KorlatozasSuly']));
+	$tags['maxweight'] = tr(trim(@$myrow['KorlatozasSuly']));
 	$tags['maxweight'] = preg_replace("/([0-9])([a-z]+)$/i", '\1 \2', trim($tags['maxweight']));
 			
 	$ways[] = array(
@@ -1064,4 +1079,8 @@ function JarhatosagAutoval ($code) {
 	
 	return @$codes[$code];
 
+}
+
+function tr ($str) {
+	return iconv('Windows-1250', 'UTF-8', $str);
 }
