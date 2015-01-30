@@ -4,6 +4,8 @@ require('../include_general.php');
 require('../include_arrays.php');
 require('../poi-type-array.inc.php');
 ini_set('display_errors', 0);
+ini_set('memory_limit', '512M');
+mb_internal_encoding('UTF-8');
 
 try {
 
@@ -731,6 +733,8 @@ foreach ($rows as $myrow) {
 	unset($tags['EmelkedesVissza']);
 	unset($tags['Hossz']);
 	unset($tags['HosszFerde']);
+	unset($tags['From']);
+	unset($tags['To']);
 
 	// ezt csak akkor, ha nincs
 	if (!$tags['Ivelve']) unset($tags['Ivelve']);
@@ -931,15 +935,61 @@ foreach ($rows as $myrow) {
 	);
 	
 	if (trim($tags['Label']) != '') {
-		foreach (explode(' ', trim($tags['Label'])) as $jel) {
+		foreach (explode(' ', trim($tags['Label'])) as $counter => $jel) {
+
+			$jel = trim($jel);
+			
+			if (preg_match('/^([KPSZVFE])(.*)$/iu', $jel, $regs)) {
+				$szin = $regs[1];
+				$forma = $regs[2];
+			} else {
+				$szin = '';
+				$forma = $jel;
+			}
+			
+			$szinek = array(
+				'k' => 'blue',
+				'p' => 'red',
+				's' => 'yellow',
+				'z' => 'green',
+				'v' => 'purple',
+				'f' => 'black',
+				'e' => 'gray',
+			);
+
+			$formak = array(
+				'' => array('bar', ''),
+				'+' => array('cross', '+'),
+				'3' => array('triangle', '▲'),
+				'4' => array('rectangle', '■'),
+				'q' => array('dot', '●'),
+				'b' => array('arch', 'Ω'),
+				'l' => array('L', '▙'),
+				'c' => array('circle', '↺'),
+				't' => array('T', ':T:'), // ???
+			);
+
+			$color = @$szinek[mb_strtolower($szin)];
+			$symbol = @$formak[mb_strtolower($forma)];
+			
+			$name = isset($symbol[1]) ? ($szin . $symbol[1]) : mb_strtoupper($jel);
 			$tags = array(
-				'jel' => 'k',
-				'name' => 'K',
-				'network' => 'nwn',
-				'osmc:symbol' => 'blue:white:blue_bar',
+				'jel' => mb_strtolower($jel),
+				'name' => $name,
+				'network' => $forma == '' ? 'nwn' : 'lwn',
 				'route' => 'hiking',
 				'type' => 'route',
+				'debug:szin' => $szin,
+				'debug:forma' => $forma,
 			);
+
+			if ($symbol !== null) {
+				$face = $symbol[0];
+				$tags['osmc:symbol'] = sprintf(
+					'%s:white:%s_%s',
+					$color, $color, $face
+				);
+			}
 			
 			$members = array(
 				array(
@@ -949,7 +999,7 @@ foreach ($rows as $myrow) {
 			);
 			
 			$attr = array(
-				'id' => $myrow['id'],
+				'id' => sprintf('2%09d%02d', $myrow['id'], $counter),
 				'version' => '999999999',
 			);
 			
@@ -960,6 +1010,7 @@ foreach ($rows as $myrow) {
 			);
 		
 			$rels[] = $rel;
+
 		}
 	}
 		
