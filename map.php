@@ -653,6 +653,71 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['gsm:cellid'] = @$tags['POI:cid'];
 	$tags['internet_access:ssid'] = @$tags['POI:essid'];
 	$tags['cave:ref'] = @$tags['POI:kataszteri szám'];
+
+/*
+étterem tulajdonságai: vegetáriánus konyha; nemdohányzó helyiség; légkondicionálás; fizetés kártyával
+pihenőhely tulajdonságai: nyilvános WC; ivóvíz; szemeteskuka; kávé, tea; szendvics; meleg étel
+barlang tulajdonságai: bivakhelynek megfelel; nyitott (nincs lezárva); kötél szükséges hozzá
+hulladékfajták: papír; színes üveg; fehér üveg; fémpalack; PET palack; akkumulátor; fémhulladék; egyéb veszélyes hulladék
+váróhelység nincs; megálló beállóval; állomás váróteremmel; pályaudvar
+*/					
+	
+	foreach ($attributes as $key => $attribute) {
+		foreach ($attribute as $value) {
+			switch ($value) {
+				case 'vegetáriánus konyha':
+					$tags['diet:vegetarian'] = 'yes';
+					break;
+					
+				case 'nemdohányzó helyiség':
+					// ma már sehol sem lehet dohányozni
+					break;
+
+				case 'fizetés kártyával':
+					$tags['payment:debit_cards'] = 'yes';
+					$tags['payment:credit_cards'] = 'yes';
+					break;
+
+				case 'nyilvános WC':
+					$tags['amenity'] = 'toilets';
+					break;
+					
+				case 'ivóvíz':
+					$tags['amenity'] = 'drinking_water';
+					break;
+					
+				case 'szemeteskuka':
+					$tags['amenity'] = 'waste_basket';
+					break;
+					
+				case 'papír':
+					$tags['recycling:paper'] = 'yes';
+					break;
+					
+				case 'színes üveg':
+				case 'fehér üveg':
+					$tags['recycling:glass'] = 'yes';
+					break;
+
+				case 'fémpalack':
+					$tags['recycling:cans'] = 'yes';
+					break;
+					
+				case 'PET palack':
+					$tags['recycling:plastic_bottles'] = 'yes';
+					break;
+					
+				case 'akkumulátor':
+					$tags['recycling:batteries'] = 'yes';
+					break;
+
+				case 'fémhulladék':
+					$tags['recycling:scrap_metal'] = 'yes';
+					break;
+
+			}
+		}
+	}
 	
 	// forrás
 	$tags['source'] = 'turistautak.hu';
