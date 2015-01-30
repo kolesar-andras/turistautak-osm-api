@@ -81,10 +81,26 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		'Megjegyzes' => tr($myrow['notes']),
 	);
 
+	$attributes = array();
 	foreach (explode("\n", $myrow['attributes']) as $attribute) {
 		if (preg_match('/^([^=]+)=(.+)$/', $attribute, $regs)) {
 			$key = tr($regs[1]);
 			$value = tr($regs[2]);
+			
+			if (isset($poi_attributes_def[$regs[1]])) {
+				$def = $poi_attributes_def[$regs[1]];
+				if ($def['datatype'] == 'attributes' && $value[0] == 'A') {
+					$values = explode(';', tr(trim($def['options'])));
+					$attributes[$key] = array();
+					for ($i=0; $i<strlen($value); $i++) {
+						if ($value[$i+1] == '+') {
+							$attributes[$key][] = trim($values[$i]);
+						}
+					}
+					$value = implode('; ', $attributes[$key]);
+				}
+			}
+			
 			$tags['POI:' . $key] = $value;
 		}
 	}
@@ -637,7 +653,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['gsm:cellid'] = @$tags['POI:cid'];
 	$tags['internet_access:ssid'] = @$tags['POI:essid'];
 	$tags['cave:ref'] = @$tags['POI:kataszteri szám'];
-
+	
 	// forrás
 	$tags['source'] = 'turistautak.hu';
 
