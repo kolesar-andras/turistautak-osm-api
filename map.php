@@ -929,6 +929,39 @@ foreach ($rows as $myrow) {
 		'nd' => $ndrefs,
 		'tags' => $tags,
 	);
+	
+	if (trim($tags['Label']) != '') {
+		foreach (explode(' ', trim($tags['Label'])) as $jel) {
+			$tags = array(
+				'jel' => 'k',
+				'name' => 'K',
+				'network' => 'nwn',
+				'osmc:symbol' => 'blue:white:blue_bar',
+				'route' => 'hiking',
+				'type' => 'route',
+			);
+			
+			$members = array(
+				array(
+					'type' => 'way',
+					'ref' => $myrow['id'],
+				)
+			);
+			
+			$attr = array(
+				'id' => $myrow['id'],
+				'version' => '999999999',
+			);
+			
+			$rel = array(
+				'attr' => $attr,
+				'members' => $members,
+				'tags' => $tags,
+			);
+		
+			$rels[] = $rel;
+		}
+	}
 		
 }
 
