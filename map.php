@@ -719,6 +719,101 @@ váróhelység nincs; megálló beállóval; állomás váróteremmel; pályaudv
 		}
 	}
 	
+	/* váróhelység: nincs; megálló beállóval; állomás váróteremmel; pályaudvar */
+	switch ($tags['POI:váróhelység']) {
+		case 'nincs':
+			$tags['shelter'] = 'no';
+			break;
+
+		case 'megálló beállóval':
+			$tags['shelter'] = 'yes';
+			break;
+
+		case 'állomás váróteremmel':
+			$tags['shelter'] = 'yes';
+			$tags['building'] = 'yes';
+			break;
+
+		case 'pályaudvar':
+			$tags['amenity'] = 'bus_station';
+			break;
+
+	}
+	
+	/* étterem típusa: étterem; pizzéria; cukrászda; büfé; söröző; kocsma; teaház; presszó */
+	if ($myrow['code'] == 0xa103 || $myrow['code'] == 0xa100) switch ($tags['POI:étterem típusa']) {
+		case 'pizzéria':
+			$tags['cuisine'] = 'pizza';
+			break;
+
+		case 'cukrászda':
+			$tags['shop'] = 'confectionery';
+			break;
+
+		case 'büfé':
+			$tags['amenity'] = 'fast_food';
+			break;
+
+		case 'söröző':
+			$tags['amenity'] = 'pub';
+			break;
+
+		case 'kocsma':
+			$tags['amenity'] = 'pub';
+			break;
+
+		case 'teaház':
+			$tags['shop'] = 'tea'; // ??
+			break;
+
+		case 'presszó':
+			$tags['amenity'] = 'cafe';
+			break;
+
+	}	
+	
+	/* igazolás típusa: bélyegző; kód; matrica; egyéb */
+	/* 16395 Dezsővár 47.924417, 19.909033 */
+	if ($myrow['code'] == 0xad01) switch ($tags['POI:igazolás típusa']) {
+		case 'bélyegző':
+			$tags['checkpoint:type'] = 'stamp';
+			break;
+
+		case 'kód':
+			$tags['checkpoint:type'] = 'code';
+			break;
+
+		case 'matrica':
+			$tags['checkpoint:type'] = 'sticker';
+			break;
+	}	
+
+	/* szállás típusa: szálloda; panzió; vendégház; turistaház; kulcsosház; kemping */
+	/* 1705 Slano 42.582633 18.209050 kemping */
+	if ($myrow['code'] == 0xa400) switch ($tags['POI:szállás típusa']) {
+
+		case 'szálloda':
+			$tags['tourism'] = 'hotel';
+			break;
+
+		case 'panzió':
+		case 'vendégház':
+		case 'turistaház':
+			$tags['tourism'] = 'guest_house';
+			break;
+
+		case 'kulcsosház':
+			$tags['tourism'] = 'chalet';
+			break;
+
+		case 'kemping':
+			$tags['tourism'] = 'camp_site';
+			break;
+	}
+	
+	if ($tags['POI:díjszabás'] == 'ingyenes') $tags['fee'] = 'no';
+	if (preg_match('/ingyen/i', $tags['Label'])) $tags['fee'] = 'no'; // poi 2838
+	
 	// forrás
 	$tags['source'] = 'turistautak.hu';
 
@@ -726,7 +821,7 @@ váróhelység nincs; megálló beállóval; állomás váróteremmel; pályaudv
 }
 
 // lines
-$sql = sprintf("SELECT 
+$sql = sprintf("SELECT
 	segments.*,
 	userinserted.member AS userinsertedname,
 	usermodified.member AS usermodifiedname
