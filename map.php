@@ -24,6 +24,8 @@ $area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
 if ($area>0.25) throw new Exception('bbox too large');
 
 $nd = array();
+$ways = array();
+$rels = array();
 $nodetags = array();
 
 echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
@@ -69,7 +71,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		'Label' => tr($myrow['nickname']),
 		'ID' => $myrow['id'],
 		'Letrehozta' => sprintf('%d %s', $myrow['owner'], tr($myrow['ownername'])),
-		'Letrehozva' => $myrow['dateinsterted'],
+		'Letrehozva' => $myrow['dateinserted'],
 		'Modositotta' => sprintf('%d %s', $myrow['useruploaded'], tr($myrow['useruploadedname'])),
 		'Modositva' => $myrow['dateuploaded'],
 		'ID' => $myrow['id'],
@@ -930,6 +932,199 @@ foreach ($rows as $myrow) {
 		
 }
 
+// polygons
+$sql = sprintf("SELECT 
+	polygons.*,
+	userinserted.member AS userinsertedname,
+	usermodified.member AS usermodifiedname
+	FROM polygons
+	LEFT JOIN geocaching.users AS userinserted ON polygons.userinserted = userinserted.id
+	LEFT JOIN geocaching.users AS usermodified ON polygons.usermodified = usermodified.id
+	WHERE deleted=0
+	AND lon_max>=%1.6f
+	AND lat_max>=%1.6f
+	AND lon_min<=%1.6f
+	AND lat_min<=%1.6f",
+	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+
+$rows = array_query($sql);
+
+foreach ($rows as $myrow) {
+
+	$nodes = explode("\n", trim($myrow['points']));
+	$ndrefs = array();
+	$members = array();
+	$nodecount = count($nodes);
+	foreach ($nodes as $node_id => $node) {
+		if (count($coords = explode(';', $node)) >=2) {
+			$node = sprintf('%1.6f,%1.6f', $coords[0], $coords[1]);
+			$break = (int) @$coords[2];
+			if ($break && count($ndrefs)) {
+				// bezárjuk a vonalat
+				if ($ndrefs[count($ndrefs)-1] != $ndrefs[0])
+					$ndrefs[] = $ndrefs[0];
+					
+				$id = sprintf('%d%s',
+							1000000 + $myrow['id'],
+							count($members));
+							
+				$attr = array(
+					'id' => $id,
+					'version' => '999999999',
+				);
+
+				$ways[] = array(
+					'attr' => $attr,
+					'nd' => $ndrefs,
+					// 'tags' => $tags,
+				);
+				$members[] = array(
+					'type' => 'way',
+					'ref' => $id,
+					'role' => count($members) ? 'inner' : 'outer',
+				);
+				$ndrefs = array();
+			}
+			if (isset($nd[$node])) {
+				$ref = $nd[$node];
+			} else {
+				$ref = str_replace('.', '', str_replace(',', '', $node));
+				$nd[$node] = $ref;
+			}
+			$ndrefs[] = $ref;
+			
+		}
+	}
+
+	if (count($ndrefs)) {
+		// bezárjuk a vonalat
+		if ($ndrefs[count($ndrefs)-1] != $ndrefs[0])
+			$ndrefs[] = $ndrefs[0];
+		
+		// ha többrészes, akkor ezt a részt is mentjük
+		if (count($members)) {
+			$id = sprintf('%d%s',
+						1000000 + $myrow['id'],
+						count($members));
+						
+			$attr = array(
+				'id' => $id,
+				'version' => '999999999',
+			);
+				
+			$ways[] = array(
+				'attr' => $attr,
+				'nd' => $ndrefs,
+				// 'tags' => $tags,
+			);
+
+			$members[] = array(
+				'type' => 'way',
+				'ref' => $id,
+				'role' => count($members) ? 'inner' : 'outer',
+			);
+			$ndrefs = array();
+		}
+	}
+	
+	$attr = array(
+		'id' => $myrow['id'] + 1000000,
+		'version' => '999999999',
+		// '' => ,	
+	);
+	
+	$tags = array();
+
+	$tags['ID'] = $myrow['id'];
+	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], polygon_type($myrow['code']));
+	
+	$tags['Label'] = tr($myrow['label']);
+	$tags['Letrehozva'] = $myrow['dateinserted'];
+	$tags['Modositva'] = $myrow['datemodified'];
+	$tags['Letrehozta'] = sprintf('%d %s', $myrow['userinserted'], tr($myrow['userinsertedname']));
+	if (isset($tags['Modositotta']))
+		$tags['Modositotta'] = sprintf('%d %s', $myrow['usermodified'], tr($myrow['usermodifiedname']));
+		
+	// forrás
+	$tags['source'] = 'turistautak.hu';
+	$tags['name'] = $tags['Label'];
+
+	$tags['[----------]'] = '[----------]';
+
+	switch ($myrow['code']) {
+		case 0x81:
+			$tags['landuse'] = 'forest';
+			break;
+
+		case 0x82:
+			$tags['landuse'] = 'forest';
+			$tags['leaf_type'] = 'needleleaved';
+			break;
+			
+		case 0x85:
+			$tags['natural'] = 'scrub';
+			break;
+			
+		case 0x86:
+			$tags['landuse'] = 'vineyard';
+			break;
+			
+		case 0x87:
+			$tags['landuse'] = 'orchard';
+			break;
+			
+		case 0x90:
+		case 0x91:
+		case 0x92:
+		case 0x93:
+			$tags['natural'] = 'water';
+			break;
+
+		case 0xa0:
+		case 0xa1:
+		case 0xa2:
+		case 0xa3:
+		case 0xa4:
+		case 0xa5:
+		case 0xa6:
+			$tags['landuse'] = 'residential';
+			break;
+
+		case 0xb2:
+			$tags['amenity'] = 'parking';
+			break;
+
+		case 0xb1:
+			$tags['building'] = 'yes';
+			break;
+
+		case 0xba:
+			$tags['landuse'] = 'cemetery';
+			break;
+
+	}
+
+	$tags['name'] = tr(trim(@$myrow['Label']));
+	
+	if (count($members)) {
+		$tags['type'] = 'multipolygon';
+		$rels[] = array(
+			'attr' => $attr,
+			'members' => $members,
+			'tags' => $tags,
+		);
+
+	} else {
+
+		$ways[] = array(
+			'attr' => $attr,
+			'nd' => $ndrefs,
+			'tags' => $tags,
+		);
+	}
+		
+}
+
 foreach ($nd as $node => $ref) {
 	list($lat, $lon) = explode(',', $node);
 	$attributes = sprintf('id="%s" lat="%1.6f" lon="%1.6f" version="999999999"', $ref, $lat, $lon);
@@ -937,29 +1132,28 @@ foreach ($nd as $node => $ref) {
 		echo sprintf('<node %s />', $attributes), "\n";
 	} else {
 		echo sprintf('<node %s>', $attributes), "\n";
-		foreach ($nodetags[$ref] as $k => $v) {
-			if (trim(@$v) == '') continue;
-			echo sprintf('<tag k="%s" v="%s" />', htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
-		}
+		print_tags($nodetags[$ref]);
 		echo '</node>', "\n";
 	}
 }
 
 foreach ($ways as $way) {
-	$attrs = array();
-	foreach ($way['attr'] as $k => $v) {
-		$attrs[] = sprintf('%s="%s"', $k, htmlspecialchars($v));
-	}
-	echo sprintf('<way %s >', implode(' ', $attrs)), "\n";
+	echo sprintf('<way %s >', attrs($way['attr'])), "\n";
 	foreach ($way['nd'] as $ref) {
 		echo sprintf('<nd ref="%s" />', $ref), "\n";
 	}
-	foreach ($way['tags'] as $k => $v) {
-		if (trim(@$v) == '') continue;
-		echo sprintf('<tag k="%s" v="%s" />', htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
-	}
+	print_tags($way['tags']);
 	echo '</way>', "\n";
 	
+}
+
+foreach ($rels as $rel) {
+	echo sprintf('<relation %s >', attrs($rel['attr'])), "\n";
+	foreach ($rel['members'] as $member) {
+		echo sprintf('<member %s />', attrs($member)), "\n";
+	}
+	print_tags($rel['tags']);
+	echo '</relation>', "\n";
 }
 
 echo '</osm>', "\n";
@@ -1042,6 +1236,55 @@ function line_type ($code) {
 	return @$codes[$code];
 }
 
+function polygon_type ($code) {
+	$codes = array(
+		0x81 => 'erdő',
+		0x82 => 'fenyves',
+		0x83 => 'fiatalos',
+		0x84 => 'erdőirtás',
+		0x85 => 'bokros',
+		0x86 => 'szőlő',
+		0x87 => 'gyümölcsös',
+		0x88 => 'rét',
+		0x89 => 'park',
+		0x8a => 'szántó',
+		0x80 => 'zöldfelület',
+		0x91 => 'tenger',
+		0x92 => 'tó',
+		0x93 => 'folyó',
+		0x94 => 'mocsár',
+		0x95 => 'nádas',
+		0x96 => 'dagonya',
+		0x90 => 'víz',
+		0xa1 => 'megyeszékhely',
+		0xa2 => 'nagyváros',
+		0xa3 => 'kisváros',
+		0xa4 => 'nagyközség',
+		0xa5 => 'falu',
+		0xa6 => 'településrész',
+		0xa0 => 'település',
+		0xb1 => 'épület',
+		0xb2 => 'parkoló',
+		0xb3 => 'ipari terület',
+		0xb4 => 'bevásárlóközpont',
+		0xb5 => 'kifutópálya',
+		0xb6 => 'sípálya',
+		0xb7 => 'szánkópálya',
+		0xb8 => 'golfpálya',
+		0xb9 => 'sportpálya',
+		0xba => 'temető',
+		0xbb => 'katonai terület',
+		0xbc => 'pályaudvar',
+		0xbd => 'iskola',
+		0xbe => 'kórház',
+		0xb0 => 'mesterséges terület',
+		0xf1 => 'fokozottan védett terület',
+		0xf2 => 'háttér',
+	);
+	
+	return @$codes[$code];
+}
+
 function burkolat ($code) {
 	
 	$codes = array(
@@ -1112,4 +1355,19 @@ function JarhatosagAutoval ($code) {
 
 function tr ($str) {
 	return iconv('Windows-1250', 'UTF-8', $str);
+}
+
+function attrs ($arr) {
+	$attrs = array();
+	foreach ($arr as $k => $v) {
+		$attrs[] = sprintf('%s="%s"', $k, htmlspecialchars($v));
+	}
+	return implode(' ', $attrs);
+}
+
+function print_tags ($tags) {
+	foreach ($tags as $k => $v) {
+		if (trim(@$v) == '') continue;
+		echo sprintf('<tag k="%s" v="%s" />', htmlspecialchars(trim($k)), htmlspecialchars(trim($v))), "\n";
+	}
 }
