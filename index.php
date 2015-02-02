@@ -1,5 +1,13 @@
 <?php
 
+/**
+ * turistautak.hu osm api
+ *
+ * @author Kolesár András <kolesar@turistautak.hu>
+ * @since 2014.06.09
+ *
+ */
+ 
 $base = '/api/0.6/';
 $url = parse_url($_SERVER['REQUEST_URI']);
 
@@ -31,13 +39,7 @@ switch ($url['path']) {
 		break;
 		
 	case '/api/':
-		header('Content-type: text/plain; charset=UTF-8');
-		echo "JOSM-ben állítsd be ezt a címet.\n";
-		echo "\n";
-		echo "Szerkesztés/Beállítások (F12)\n";
-		echo "második fül (OSM szerverhez kapcsolódás beállításai)\n";
-		echo "[ ] Alapértelmezett OSM szerver URL elérés használata (kapcsold ki)\n";
-		echo "OSM szerver url: http://turistautak.hu/api\n";
+		require_once('api.php');
 		break;
 		
 	default:

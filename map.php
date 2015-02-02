@@ -1,5 +1,27 @@
 <?php 
 
+/**
+ * térképi objektumok letöltése osm fájlként
+ *
+ * 2015.02.01 előtt csak hitelesítéssel és jogosultsággal működött
+ * az ODbL nyitással ezt kikapcsoltam
+ *
+ * közvetlenül a MySQL adatbázist olvassa
+ * felhasznál php összetevőket is a turistautak.hu-ból
+ * például a beállításokat, típusdefiníciós tömböket
+ *
+ * @todo ötletek
+ * lakcím-interpolációt is lehozhatná
+ * ha csak egy van egy oldalon, akkor egyetlen node-ként
+
+ * geometriai index használata (sajnos a táblák nem MyISAM-ok)
+ * objektum-orientált megvalósítás, szétválasztás részekre
+ *
+ * @author Kolesár András <kolesar@turistautak.hu>
+ * @since 2014.06.09
+ *
+ */
+
 require('../include_general.php');
 require('../include_arrays.php');
 require('../poi-type-array.inc.php');
@@ -9,7 +31,7 @@ mb_internal_encoding('UTF-8');
 
 try {
 
-if (!allow_download($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])) {
+if (date('Y-m-d') < '2015-02-01' && !allow_download($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])) {
 	$realm = 'turistautak.hu';
 	header('WWW-Authenticate: Basic realm="' . $realm . '"');
     header('HTTP/1.0 401 Unauthorized');
@@ -106,6 +128,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	}
 
 	$tags['[----------]'] = '[----------]';
+	$tags['name'] = preg_replace('/ \.\.$/', '', $tags['Label']);
 	$name = null;
 	
 	switch (@$myrow['code']) {
@@ -162,6 +185,10 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$tags['shop'] = 'butcher';
 			break;
 
+		case 0xa201:
+			$tags['natural'] = 'water';
+			break;
+
 		case 0xa202:
 			$tags['natural'] = 'spring';
 			break;
@@ -203,6 +230,20 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		case 0xa303:
 			$tags['amenity'] = 'place_of_worship';
 			$tags['building'] = 'church';
+			if (preg_match('/\\b(g\\.? ?k|görög kat.*)\\b/iu', $tags['Label'])) {
+				$tags['religion'] = 'christian';
+				$tags['denomination'] = 'greek_catholic';
+			} else if (preg_match('/\\b(r\\.? ?k|kat\.|római kat.*)\\b/iu', $tags['Label'])) {
+				$tags['religion'] = 'christian';
+				$tags['denomination'] = 'roman_catholic';
+			} else if (preg_match('/\\b(református|ref\.)\\b/iu', $tags['Label'])) {
+				$tags['religion'] = 'christian';
+				$tags['denomination'] = 'reformed';
+			} else if (preg_match('/\\b(evangélikus|ev\.)\\b/iu', $tags['Label'])) {
+				$tags['religion'] = 'christian';
+				$tags['denomination'] = 'lutheran';
+			}
+			
 			break;
 
 		case 0xa304:
@@ -348,14 +389,25 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xa706:
 			$tags['amenity'] = 'doctors';
+			if (@$tags['Label'] == 'Orvosi rendelő') $name = false;
 			break;
 
 		case 0xa707:
 			$tags['amenity'] = 'pharmacy';
+			if (@$tags['Label'] == 'Gyógyszertár') $name = false;
 			break;
 
 		case 0xa70a:
 			$tags['amenity'] = 'telephone';
+			if (preg_match('/^[0-9]+-/', $tags['name'])) {
+				$tags['payment:telephone_cards'] = 'yes';
+			} else if (preg_match('/^[0-9]+\\+/', $tags['name'])) {
+				$tags['payment:coins'] = 'yes';
+			}
+			$tags['phone'] = preg_replace('/^([0-9]+)(\\+|-)/', '\\1 ', $tags['name']);
+			if (!preg_match('/^\\+36 ?/', $tags['phone'])) {
+				$tags['phone'] = '+36 ' . $tags['phone'];
+			}
 			$name = false;
 			break;
 
@@ -383,6 +435,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			break;
 
 		case 0xa70f:
+			if (@$tags['Label'] == 'Rendőrség') $name = false;
 			$tags['amenity'] = 'police';
 			break;
 
@@ -452,6 +505,24 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$tags['tourism'] = 'attraction';
 			break;
 
+		case 0xaa00:
+			// erdőhatár-jelek, leginkább fából
+			if (preg_match('#^[0-9/]+$#', $tags['name'])) {
+				$tags['ref'] = $tags['name'];
+				$tags['boundary'] = 'marker';
+				$tags['marker'] = 'wood';
+				$name = false;
+			} else if ($tags['name'] == 'Harangláb') {
+				$tags['man_made'] = 'campanile';
+				$name = false;
+			}
+			break;
+
+		case 0xaa03:
+			$tags['man_made'] = 'works';
+			$name = false;
+			break;
+
 		case 0xaa06:
 			$tags['man_made'] = 'tower';
 			$tags['tower_type'] = 'communication';
@@ -465,21 +536,6 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xaa08:
 			$tags['man_made'] = 'water_tower';
-			$name = false;
-			break;
-
-		case 0xaa14:
-			$tags['barrier'] = 'lift_gate';
-			$name = false;
-			break;
-
-		case 0xaa2a:
-			$tags['highway'] = 'milestone';
-			$name = false;
-			break;
-
-		case 0xaa03:
-			$tags['man_made'] = 'works';
 			$name = false;
 			break;
 
@@ -525,6 +581,11 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			if (@$tags['Label'] == 'Tűzrakóhely') $name = false;
 			break;
 
+		case 0xaa14:
+			$tags['barrier'] = 'lift_gate';
+			$name = false;
+			break;
+
 		case 0xaa16:
 			$tags['man_made'] = 'survey_point';
 			$name = false;
@@ -533,6 +594,14 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		case 0xaa17:
 			$tags['historic'] = 'boundary_stone';
 			if (@$tags['Label'] == 'Határkő') $name = false;
+			break;
+
+		case 0xaa2a:
+			$tags['highway'] = 'milestone';
+			if (preg_match('/([0-9]+)/iu', $tags['Label'], $regs)) {
+				$tags['distance'] = $regs[1];
+			}
+			$name = false;
 			break;
 
 		case 0xaa2b:
@@ -550,6 +619,12 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xaa36:
 			$tags['power'] = 'transformer';
+			if (preg_match('/([0-9]+)/', $tags['Label'], $regs))
+				$tags['ref'] = $regs[1];
+			if (preg_match('/otr/iu', $tags['Label'], $regs)) {
+				$tags['power'] = 'pole';
+				$tags['transformer'] = 'distribution';
+			}
 			$name = false;
 			break;
 
@@ -566,6 +641,11 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		case 0xab03:
 			$tags['ford'] = 'yes';
 			if (@$tags['Label'] == 'Gázló') $name = false;
+			break;
+
+		case 0xab04:
+			$tags['natural'] = 'mud';
+			if (@$tags['Label'] == 'Dagonya') $name = false;
 			break;
 
 		case 0xab05:
@@ -631,15 +711,17 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 						
 	}
 	
-	if ($name !== false) $tags['name'] = preg_replace('/ \.\.$/', '', $tags['Label']);
+	if ($name === false) unset($tags['name']);
 	$tags['url'] = 'http://turistautak.hu/poi.php?id=' . $myrow['id'];
 	
 	$tags['email'] = @$tags['POI:email'];
-
+	
 	if (@$tags['POI:telefon'] != '' && $tags['POI:mobil'] != '' && $tags['POI:telefon'] != $tags['POI:mobil']) {
 		$tags['phone'] = $tags['POI:telefon'] . '; ' . $tags['POI:mobil'];
-	} else {
-		$tags['phone'] = @$tags['POI:telefon'] != '' ? $tags['POI:telefon'] : $tags['POI:mobil'];
+	} else if ($tags['POI:telefon'] != '') {
+		$tags['phone'] = $tags['POI:telefon'];	
+	} else if ($tags['POI:mobil'] != '') {
+		$tags['phone'] = $tags['POI:mobil'];
 	}
 
 	$tags['fax'] = @$tags['POI:fax'];
@@ -653,7 +735,24 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	$tags['gsm:cellid'] = @$tags['POI:cid'];
 	$tags['internet_access:ssid'] = @$tags['POI:essid'];
 	$tags['cave:ref'] = @$tags['POI:kataszteri szám'];
+	
+	// kivesszük a nyitva tartást a leírásból
+	if (!isset($tags['opening_hours']) && preg_match('/^Nyitva ?tartás ?:?(.+)$/imu', $tags['Leiras'], $regs)) {
+		$tags['opening_hours'] = trim($regs[1]);
+	}
+	
+	// átalakítjuk a nyitva tartást osm szintaktikára
+	$tags['opening_hours'] = preg_replace('/\b(H|Hét|Hétfő)\b/i', 'Mo', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(K|Ked|Kedd)\b/i', 'Tu', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(S|Sze|Szerda)\b/i', 'We', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(Cs|Csü|Csürtörtök)\b/i', 'Th', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(P|Pén|Péntek)\b/i', 'Fr', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(Sz|Szo|Szombat)\b/i', 'Sa', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace('/\b(V|Vas|Vasárnap)\b/i', 'Su', $tags['opening_hours']);
 
+	$tags['opening_hours'] = preg_replace("/(?<![0-9:])([0-9]+)(?![0-9:])/i", '\\1:00', $tags['opening_hours']);
+	$tags['opening_hours'] = preg_replace("/(?<![0-9:])([0-9]:)/i", '0\\1', $tags['opening_hours']);
+	
 /*
 étterem tulajdonságai: vegetáriánus konyha; nemdohányzó helyiség; légkondicionálás; fizetés kártyával
 pihenőhely tulajdonságai: nyilvános WC; ivóvíz; szemeteskuka; kávé, tea; szendvics; meleg étel
@@ -1010,6 +1109,10 @@ foreach ($rows as $myrow) {
 
 		case 0xb4:
 			$tags['route'] = 'ferry';
+			break;
+
+		case 0xb5:
+			$tags['waterway'] = 'ditch';
 			break;
 
 		case 0xc1:
@@ -1563,6 +1666,7 @@ function line_type ($code) {
 		0x00b2 => 'patak',
 		0x00b3 => 'időszakos patak',
 		0x00b4 => 'komp',
+		0x00b5 => 'csatorna',
 		0x00c1 => 'vasút',
 		0x00c2 => 'kisvasút',
 		0x00c3 => 'villamos',
