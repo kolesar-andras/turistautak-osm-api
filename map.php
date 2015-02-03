@@ -40,6 +40,9 @@ if (date('Y-m-d') < '2015-02-01' && !allow_download($_SERVER['PHP_AUTH_USER'], $
 	exit;
 }
 
+// ezzel adtam megjegyzéseket a típuskódokhoz a forráskódban
+if (isset($_REQUEST['comment-types']) && $_SERVER['REMOTE_ADDR'] == $_SERVER['SERVER_ADDR']) comment_types();
+
 // bounding box
 if (@$_REQUEST['bbox'] == '') throw new Exception('no bbox');
 $bbox = explode(',', $_REQUEST['bbox']);
@@ -136,101 +139,101 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 	
 	switch (@$myrow['code']) {
 
-		case 0xa006:
+		case 0xa006: // településrész
 			$tags['place'] = 'suburb';
 			break;
 
-		case 0xa101:
+		case 0xa101: // élelmiszerbolt
 			$tags['shop'] = 'convenience';
 			break;
 
-		case 0xa102:
+		case 0xa102: // bevásárlóközpont
 			$tags['shop'] = 'mall';
 			break;
 
-		case 0xa103:
+		case 0xa103: // étterem
 			$tags['amenity'] = 'restaurant';
 			break;
 
-		case 0xa104:
+		case 0xa104: // büfé
 			$tags['amenity'] = 'fast_food';
 			break;
 
-		case 0xa105:
+		case 0xa105: // kocsma
 			$tags['amenity'] = 'pub';
 			break;
 		
-		case 0xa106:
+		case 0xa106: // kávézó
 			$tags['amenity'] = 'cafe';
 			break;
 
-		case 0xa107:
+		case 0xa107: // cukrászda
 			$tags['shop'] = 'confectionery';
 			break;
 
-		case 0xa108:
+		case 0xa108: // pincészet
 			$tags['craft'] = 'winery';
 			break;
 
-		case 0xa109:
+		case 0xa109: // gyorsétterem
 			$tags['amenity'] = 'fast_food';
 			break;
 
-		case 0xa10a:
+		case 0xa10a: // pékség
 			$tags['shop'] = 'bakery';
 			break;
 
-		case 0xa10b:
+		case 0xa10b: // zöldség-gyümölcs
 			$tags['shop'] = 'greengrocer';
 			break;
 
-		case 0xa10c:
+		case 0xa10c: // hentes
 			$tags['shop'] = 'butcher';
 			break;
 
-		case 0xa201:
+		case 0xa201: // tó
 			$tags['natural'] = 'water';
 			break;
 
-		case 0xa202:
+		case 0xa202: // forrás
 			$tags['natural'] = 'spring';
 			break;
 
-		case 0xa203:
+		case 0xa203: // időszakos forrás
 			$tags['natural'] = 'spring';
 			$tags['intermittent'] = 'yes';
 			break;
 
-		case 0xa205:
+		case 0xa205: // közkút
 			$tags['amenity'] = 'drinking_water';
 			$name = false;
 			break;
 
-		case 0xa206:
+		case 0xa206: // elzárt közkút
 			$tags['disused:amenity'] = 'drinking_water';
 			$name = false;
 			break;
 
-		case 0xa207:
+		case 0xa207: // tűzcsap
 			$tags['emergency'] = 'fire_hydrant';
 			$name = false;
 			break;
 
-		case 0xa208:
+		case 0xa208: // szökőkút
 			$tags['amenity'] = 'fountain';
 			$name = false;
 			break;
 
-		case 0xa300:
-		case 0xa301:
+		case 0xa300: // épület
+		case 0xa301: // ház
 			$tags['building'] = 'yes';
 			break;
 
-		case 0xa302:
+		case 0xa302: // múzeum
 			$tags['tourism'] = 'museum';
 			break;
 
-		case 0xa303:
+		case 0xa303: // templom
 			$tags['amenity'] = 'place_of_worship';
 			$tags['building'] = 'church';
 			if (preg_match('/\\b(g\\.? ?k|görög kat.*)\\b/iu', $tags['Label'])) {
@@ -249,158 +252,158 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			
 			break;
 
-		case 0xa304:
+		case 0xa304: // kápolna
 			$tags['building'] = 'chapel';
 			break;
 
-		case 0xa305:
+		case 0xa305: // zsinagóga
 			$tags['amenity'] = 'place_of_worship';
 			$tags['religion'] = 'jewish';
 			break;
 
-		case 0xa306:
+		case 0xa306: // iskola
 			$tags['amenity'] = 'school';
 			break;
 
-		case 0xa307:
-		case 0xa308:
+		case 0xa307: // vár
+		case 0xa308: // kastély
 			$tags['historic'] = 'castle';
 			break;
 
-		case 0xa401:
+		case 0xa401: // szálloda
 			$tags['tourism'] = 'hotel';
 			break;
 
-		case 0xa400:
-		case 0xa402:
-		case 0xa403:
-		case 0xa405:
+		case 0xa400: // szállás
+		case 0xa402: // panzió
+		case 0xa403: // magánszállás
+		case 0xa405: // turistaszállás
 			$tags['tourism'] = 'guest_house';
 			break;
 
-		case 0xa406:
+		case 0xa406: // kulcsosház
 			$tags['tourism'] = 'chalet';
 			break;
 
-		case 0xa404:
+		case 0xa404: // kemping
 			$tags['tourism'] = 'camp_site';
 			break;
 
-		case 0xa501:
+		case 0xa501: // emléktábla
 			$tags['historic'] = 'memorial';
 			$tags['memorial'] = 'plaque';
 			break;
 
-		case 0xa502:
+		case 0xa502: // kereszt
 			$tags['historic'] = 'wayside_cross';
 			if (in_array(@$tags['Label'], array('Kereszt', 'Feszület'))) $name = false;
 			break;
 
-		case 0xa503:
+		case 0xa503: // emlékmű
 			$tags['historic'] = 'memorial';
 			break;
 
-		case 0xa504:
+		case 0xa504: // szobor
 			$tags['tourism'] = 'artwork'; // ???
 			break;
 
-		case 0xa506:
+		case 0xa506: // sír
 			$tags['historic'] = 'wayside_shrine';
 			break;
 
-		case 0xa602:
+		case 0xa602: // buszmegálló
 			$tags['highway'] = 'bus_stop';
 			break;
 
-		case 0xa603:
+		case 0xa603: // villamosmegálló
 			$tags['railway'] = 'tram_stop';
 			break;
 
-		case 0xa604:
-		case 0xa605:
+		case 0xa604: // pályaudvar
+		case 0xa605: // vasútállomás
 			$tags['railway'] = 'station';
 			break;
 
-		case 0xa606:
+		case 0xa606: // vasúti megálló
 			$tags['railway'] = 'halt';
 			break;
 
-		case 0xa607:
+		case 0xa607: // határátkelőhely
 			$tags['barrier'] = 'border_control';
 			break;
 
-		case 0xa608:
-		case 0xa60a:
+		case 0xa608: // komp
+		case 0xa60a: // hajóállomás
 			$tags['amenity'] = 'ferry_terminal';
 			break;
 
-		case 0xa609:
+		case 0xa609: // kikötő
 			$tags['leisure'] = 'marina';
 			break;
 
-		case 0xa60a:
+		case 0xa60a: // hajóállomás
 			$tags['railway'] = 'level_crossing';
 			$name = false;
 			break;
 
-		case 0xa60b:
+		case 0xa60b: // repülőtér
 			$tags['aeroway'] = 'areodrome';
 			break;
 
-		case 0xa60e:
+		case 0xa60e: // traffipax
 			$tags['highway'] = 'speed_camera';
 			$name = false;
 			break;
 
-		case 0xa60f:
+		case 0xa60f: // buszpályaudvar
 			$tags['amenity'] = 'bus_station';
 			break;
 
-		case 0xa610:
+		case 0xa610: // vasúti átjáró
 			$tags['railway'] = 'level_crossing';
 			$name = false;
 			break;
 
-		case 0xa611:
+		case 0xa611: // autópálya-csomópont
 			$tags['highway'] = 'motorway_junction';
 			break;
 
-		case 0xa612:
+		case 0xa612: // taxiállomás
 			$tags['amenity'] = 'taxi';
 			$name = false;
 			break;
 
-		case 0xa701:
+		case 0xa701: // üzlet
 			$tags['shop'] = 'yes';
 			break;
 
-		case 0xa702:
+		case 0xa702: // bankautomata
 			$tags['amenity'] = 'atm';
 			break;
 
-		case 0xa703:
+		case 0xa703: // bankfiók
 			$tags['amenity'] = 'bank';
 			break;
 
-		case 0xa704:
+		case 0xa704: // benzinkút
 			$tags['amenity'] = 'fuel';
 			break;
 
-		case 0xa705:
+		case 0xa705: // kórház
 			$tags['amenity'] = 'hospital';
 			break;
 
-		case 0xa706:
+		case 0xa706: // orvosi rendelő
 			$tags['amenity'] = 'doctors';
 			if (@$tags['Label'] == 'Orvosi rendelő') $name = false;
 			break;
 
-		case 0xa707:
+		case 0xa707: // gyógyszertár
 			$tags['amenity'] = 'pharmacy';
 			if (@$tags['Label'] == 'Gyógyszertár') $name = false;
 			break;
 
-		case 0xa70a:
+		case 0xa70a: // nyilvános telefon
 			$tags['amenity'] = 'telephone';
 			if (preg_match('/^[0-9]+-/', $tags['name'])) {
 				$tags['payment:telephone_cards'] = 'yes';
@@ -414,101 +417,101 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$name = false;
 			break;
 
-		case 0xa70b:
+		case 0xa70b: // parkoló
 			$tags['amenity'] = 'parking';
 			if (@$tags['Label'] == 'Parkoló') $name = false;
 			break;
 
-		case 0xa70c:
+		case 0xa70c: // posta
 			$tags['amenity'] = 'post_office';
 			$name = false;
 			break;
 
-		case 0xa70d:
+		case 0xa70d: // postaláda
 			$tags['amenity'] = 'post_box';
 			$name = false;
 			break;
 
-		case 0xa708:
+		case 0xa708: // hivatal
 			$tags['office'] = 'government';
 			break;
 
-		case 0xa709:
+		case 0xa709: // hotspot
 			$tags['internet_access'] = 'wlan';
 			break;
 
-		case 0xa70f:
+		case 0xa70f: // rendőrség
 			if (@$tags['Label'] == 'Rendőrség') $name = false;
 			$tags['amenity'] = 'police';
 			break;
 
-		case 0xa710:
+		case 0xa710: // tűzoltóság
 			$tags['amenity'] = 'fire_station';
 			break;
 
-		case 0xa711:
+		case 0xa711: // mentőállomás
 			$tags['emergency'] = 'ambulance_station';
 			break;
 
-		case 0xa712:
+		case 0xa712: // autószerviz
 			$tags['shop'] = 'car_repair';
 			break;
 
-		case 0xa713:
+		case 0xa713: // kerékpárbolt
 			$tags['shop'] = 'bicycle';
 			break;
 
-		case 0xa714:
+		case 0xa714: // wc
 			$tags['amenity'] = 'toilets';
 			$name = false;
 			break;
 
-		case 0xa717:
+		case 0xa717: // piac
 			$tags['amenity'] = 'marketplace';
 			break;
 
-		case 0xa718:
+		case 0xa718: // turistainformáció
 			$tags['tourism'] = 'information';
 			break;
 
-		case 0xa71c:
+		case 0xa71c: // pénzváltó
 			$tags['amenity'] = 'bureau_de_change';
 			break;
 
-		case 0xa806:
+		case 0xa806: // teniszpálya
 			$tags['leisure'] = 'pitch';
 			$tags['sport'] = 'tennis';
 			break;
 
-		case 0xa809:
+		case 0xa809: // uszoda
 			$tags['sport'] = 'swimming';
 			break;
 
-		case 0xa810:
+		case 0xa810: // sportpálya
 			$tags['leisure'] = 'pitch';
 			break;
 
-		case 0xa901:
+		case 0xa901: // színház
 			$tags['amenity'] = 'theatre';
 			break;
 
-		case 0xa902:
+		case 0xa902: // mozi
 			$tags['amenity'] = 'cinema';
 			break;
 
-		case 0xa903:
+		case 0xa903: // könyvtár
 			$tags['amenity'] = 'library';
 			break;
 
-		case 0xa905:
+		case 0xa905: // állatkert
 			$tags['tourism'] = 'zoo';
 			break;
 
-		case 0xa908:
+		case 0xa908: // látnivaló
 			$tags['tourism'] = 'attraction';
 			break;
 
-		case 0xaa00:
+		case 0xaa00: // épített tereptárgy
 			// erdőhatár-jelek, leginkább fából
 			if (preg_match('#^[0-9/]+$#', $tags['name'])) {
 				$tags['ref'] = $tags['name'];
@@ -521,85 +524,85 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			}
 			break;
 
-		case 0xaa03:
+		case 0xaa03: // gyár
 			$tags['man_made'] = 'works';
 			$name = false;
 			break;
 
-		case 0xaa06:
+		case 0xaa06: // rádiótorony
 			$tags['man_made'] = 'tower';
 			$tags['tower_type'] = 'communication';
 			$name = false;
 			break;
 
-		case 0xaa07:
+		case 0xaa07: // kémény
 			$tags['man_made'] = 'chimney';
 			$name = false;
 			break;
 
-		case 0xaa08:
+		case 0xaa08: // víztorony
 			$tags['man_made'] = 'water_tower';
 			$name = false;
 			break;
 
-		case 0xaa0a:
+		case 0xaa0a: // esőház
 			$tags['amenity'] = 'shelter';
 			$name = false;
 			break;
 
-		case 0xaa0c:
+		case 0xaa0c: // információs tábla
 			$tags['information'] = 'board';
 			$name = false;
 			break;
 
-		case 0xaa0e:
+		case 0xaa0e: // kapu
 			$tags['barrier'] = 'gate';
 			$name = false;
 			break;
 
-		case 0xaa0f:
+		case 0xaa0f: // kilátó
 			$tags['man_made'] = 'tower';
 			$tags['tower_type'] = 'observation';
 			$tags['tourism'] = 'viewpoint';
 			break;
 
-		case 0xaa10:
+		case 0xaa10: // magasles
 			$tags['amenity'] = 'hunting_stand';
 			if (preg_match('/fedett/i', @$tags['Label'])) $tags['shelter'] = 'yes';
 			$name = false;
 			break;
 
-		case 0xaa11:
+		case 0xaa11: // pihenőhely
 			$tags['tourism'] = 'picnic_site';
 			if (in_array(@$tags['Label'], array('Pihenőhely', 'Pihenő'))) $name = false;
 			break;
 
-		case 0xaa12:
+		case 0xaa12: // pad
 			$tags['amenity'] = 'bench';
 			if (@$tags['Label'] == 'Pad') $name = false;
 			break;
 
-		case 0xaa13:
+		case 0xaa13: // tűzrakóhely
 			$tags['fireplace'] = 'yes';
 			if (@$tags['Label'] == 'Tűzrakóhely') $name = false;
 			break;
 
-		case 0xaa14:
+		case 0xaa14: // sorompó
 			$tags['barrier'] = 'lift_gate';
 			$name = false;
 			break;
 
-		case 0xaa16:
+		case 0xaa16: // háromszögelési pont
 			$tags['man_made'] = 'survey_point';
 			$name = false;
 			break;
 
-		case 0xaa17:
+		case 0xaa17: // határkő
 			$tags['historic'] = 'boundary_stone';
 			if (@$tags['Label'] == 'Határkő') $name = false;
 			break;
 
-		case 0xaa2a:
+		case 0xaa2a: // km-/útjelzőkő
 			$tags['highway'] = 'milestone';
 			if (preg_match('/([0-9]+)/iu', $tags['Label'], $regs)) {
 				$tags['distance'] = $regs[1];
@@ -607,20 +610,20 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$name = false;
 			break;
 
-		case 0xaa2b:
+		case 0xaa2b: // rom
 			$tags['ruins'] = 'yes';
 			break;
 
-		case 0xaa2d:
+		case 0xaa2d: // torony
 			$tags['man_made'] = 'tower';
 			break;
 
-		case 0xaa34:
+		case 0xaa34: // vízmű
 			$tags['man_made'] = 'water_works';
 			$name = false;
 			break;
 
-		case 0xaa36:
+		case 0xaa36: // transzformátor
 			$tags['power'] = 'transformer';
 			if (preg_match('/([0-9]+)/', $tags['Label'], $regs))
 				$tags['ref'] = $regs[1];
@@ -631,84 +634,84 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$name = false;
 			break;
 
-		case 0xaa37:
+		case 0xaa37: // játszótér
 			$tags['leisure'] = 'playground';
 			if (@$tags['Label'] == 'Játszótér') $name = false;
 			break;
 
-		case 0xab02:
+		case 0xab02: // fa
 			$tags['natural'] = 'tree';
 			if (@$tags['Label'] == 'Fa') $name = false;
 			break;
 
-		case 0xab03:
+		case 0xab03: // gázló
 			$tags['ford'] = 'yes';
 			if (@$tags['Label'] == 'Gázló') $name = false;
 			break;
 
-		case 0xab04:
+		case 0xab04: // dagonya
 			$tags['natural'] = 'mud';
 			if (@$tags['Label'] == 'Dagonya') $name = false;
 			break;
 
-		case 0xab05:
+		case 0xab05: // geofa
 			$tags['natural'] = 'tree';
 			break;
 
-		case 0xab06:
+		case 0xab06: // akadály
 			$tags['barrier'] = 'yes';
 			break;
 
-		case 0xab07:
+		case 0xab07: // barlang
 			$tags['natural'] = 'cave_entrance';
 			break;
 
-		case 0xab0a:
+		case 0xab0a: // magaslat
 			$tags['natural'] = 'peak';
 			$tags['ele'] = $tags['magassag']; // ezt más ponttípusok is megkaphatnák, melyek?
 			break;
 
-		case 0xab0b:
+		case 0xab0b: // kilátás
 			$tags['tourism'] = 'viewpoint';
 			$name = false;
 			break;
 
-		case 0xab0c:
+		case 0xab0c: // szikla
 			$tags['natural'] = 'cliff';
 			if (@$tags['Label'] == 'Szikla') $name = false;
 			break;
 
-		case 0xab0d:
+		case 0xab0d: // vízesés
 			$tags['waterway'] = 'waterfall';
 			if (@$tags['Label'] == 'Vízesés') $name = false;
 			break;
 
-		case 0xac02:
+		case 0xac02: // szelektív hulladékgyűjtő
 			$tags['amenity'] = 'recycling';
 			$name = false;
 			break;
 
-		case 0xac03:
+		case 0xac03: // hulladéklerakó
 			$tags['amenity'] = 'waste_transfer_station';
 			$name = false;
 			break;
 			
-		case 0xac04:
+		case 0xac04: // hulladékgyűjtő
 			$tags['amenity'] = 'waste_basket';
 			$name = false;
 			break;
 
-		case 0xac05:
+		case 0xac05: // konténer
 			$tags['amenity'] = 'waste_disposal';
 			$name = false;
 			break;
 
-		case 0xad01:
+		case 0xad01: // pecsételőhely
 			$tags['checkpoint'] = 'hiking';
 			$tags['checkpoint:type'] = 'stamp';
 			break;
 			
-		case 0xae01:
+		case 0xae01: // névrajz
 			$tags['place'] = 'locality';
 			break;
 
@@ -1036,142 +1039,142 @@ foreach ($rows as $myrow) {
 	$tags['[----------]'] = '[----------]';
 
 	switch ($myrow['code']) {
-		case 0x81:
-		case 0x82:
-		case 0x83:
+		case 0x0081: // csapás
+		case 0x0082: // ösvény
+		case 0x0083: // gyalogút
 			$tags['highway'] = 'path';
 			break;
 
-		case 0x84:
-		case 0x85:
+		case 0x0084: // szekérút
+		case 0x0085: // földút
 			$tags['highway'] = 'track';
 			break;
 
-		case 0x86:
+		case 0x0086: // burkolatlan utca
 			$tags['highway'] = 'residential';
 			$tags['surface'] = 'unpaved';
 			break;
 
-		case 0x87:
+		case 0x0087: // makadámút
 			$tags['highway'] = 'track';
 			$tags['tracktype'] = 'grade1';
 			break;
 
-		case 0x91:
+		case 0x0091: // burkolt gyalogút
 			$tags['highway'] = 'footway';
 			break;
 
-		case 0x92:
+		case 0x0092: // kerékpárút
 			$tags['highway'] = 'cycleway';
 			break;
 
-		case 0x93:
-		case 0x94:
+		case 0x0093: // utca
+		case 0x0094: // kiemelt utca
 			$tags['highway'] = 'residential';
 			break;
 
-		case 0x95:
+		case 0x0095: // országút
 			$tags['highway'] = 'tertiary';
 			break;
 
-		case 0x96:
+		case 0x0096: // másodrendű főút
 			$tags['highway'] = 'secondary';
 			break;
 
-		case 0x97:
+		case 0x0097: // elsőrendű főút
 			$tags['highway'] = 'primary';
 			break;
 
-		case 0x98:
+		case 0x0098: // autóút
 			$tags['highway'] = 'trunk';
 			break;
 
-		case 0x99:
+		case 0x0099: // autópálya
 			$tags['highway'] = 'motorway';
 			break;
 
-		case 0x9a:
-		case 0x9b:
+		case 0x009a: // erdei aszfalt
+		case 0x009b: // egyéb közút
 			$tags['highway'] = 'unclassified';
 			break;
 
-		case 0xa2:
+		case 0x00a2: // körforgalom
 			$tags['junction'] = 'roundabout';
 			break;
 
-		case 0xa3:
+		case 0x00a3: // lépcső
 			$tags['highway'] = 'steps';
 			break;
 
-		case 0xa4:
+		case 0x00a4: // kifutópálya
 			$tags['aeroway'] = 'runway';
 			break;
 
-		case 0xb1:
+		case 0x00b1: // folyó
 			$tags['waterway'] = 'river';
 			break;
 
-		case 0xb2:
+		case 0x00b2: // patak
 			$tags['waterway'] = 'stream';
 			break;
 
-		case 0xb3:
+		case 0x00b3: // időszakos patak
 			$tags['waterway'] = 'stream';
 			$tags['intermittent'] = 'yes';
 			break;
 
-		case 0xb4:
+		case 0x00b4: // komp
 			$tags['route'] = 'ferry';
 			break;
 
-		case 0xb5:
+		case 0x00b5: // csatorna
 			$tags['waterway'] = 'ditch';
 			break;
 
-		case 0xc1:
+		case 0x00c1: // vasút
 			$tags['railway'] = 'rail';
 			break;
 
-		case 0xc2:
+		case 0x00c2: // kisvasút
 			$tags['railway'] = 'narrow_gauge';
 			break;
 
-		case 0xc3:
+		case 0x00c3: // villamos
 			$tags['railway'] = 'tram';
 			break;
 
-		case 0xc4:
+		case 0x00c4: // kerítés
 			$tags['barrier'] = 'fence';
 			break;
 
-		case 0xc5:
+		case 0x00c5: // elektromos vezeték
 			$tags['power'] = 'line';
 			break;
 
-		case 0xc6:
+		case 0x00c6: // csővezeték
 			$tags['man_made'] = 'pipeline';
 			break;
 
-		case 0xc7:
-		case 0xc8:
-		case 0xc9:
+		case 0x00c7: // kötélpálya
+		case 0x00c8: // 
+		case 0x00c9: // 
 			$tags['aerialway'] = 'chair_lift';
 			break;
 
-		case 0xd3:
+		case 0x00d3: // vízpart
 			$tags['natural'] = 'coastline';
 			break;
 
-		case 0xd4:
+		case 0x00d4: // völgyvonal
 			$tags['natural'] = 'valley';
 			break;
 
-		case 0xd5:
+		case 0x00d5: // megyehatár
 			$tags['boundary'] = 'administrative';
 			$tags['admin_level'] = '2';
 			break;
 
-		case 0xd6:
+		case 0x00d6: // országhatár
 			$tags['boundary'] = 'administrative';
 			$tags['admin_level'] = '6';
 			break;
@@ -1636,53 +1639,53 @@ foreach ($rows as $myrow) {
 	$tags['[----------]'] = '[----------]';
 
 	switch ($myrow['code']) {
-		case 0x81:
+		case 0x81: // erdő
 			$tags['landuse'] = 'forest';
 			break;
 
-		case 0x82:
+		case 0x82: // fenyves
 			$tags['landuse'] = 'forest';
 			$tags['leaf_type'] = 'needleleaved';
 			break;
 			
-		case 0x85:
+		case 0x85: // bokros
 			$tags['natural'] = 'scrub';
 			break;
 			
-		case 0x86:
+		case 0x86: // szőlő
 			$tags['landuse'] = 'vineyard';
 			break;
 			
-		case 0x87:
+		case 0x87: // gyümölcsös
 			$tags['landuse'] = 'orchard';
 			break;
 			
-		case 0x90:
-		case 0x91:
-		case 0x92:
-		case 0x93:
+		case 0x90: // víz
+		case 0x91: // tenger
+		case 0x92: // tó
+		case 0x93: // folyó
 			$tags['natural'] = 'water';
 			break;
 
-		case 0xa0:
-		case 0xa1:
-		case 0xa2:
-		case 0xa3:
-		case 0xa4:
-		case 0xa5:
-		case 0xa6:
+		case 0xa0: // település
+		case 0xa1: // megyeszékhely
+		case 0xa2: // nagyváros
+		case 0xa3: // kisváros
+		case 0xa4: // nagyközség
+		case 0xa5: // falu
+		case 0xa6: // településrész
 			$tags['landuse'] = 'residential';
 			break;
 
-		case 0xb2:
+		case 0xb2: // parkoló
 			$tags['amenity'] = 'parking';
 			break;
 
-		case 0xb1:
+		case 0xb1: // épület
 			$tags['building'] = 'yes';
 			break;
 
-		case 0xba:
+		case 0xba: // temető
 			$tags['landuse'] = 'cemetery';
 			break;
 
@@ -2053,3 +2056,33 @@ function refs ($arr) {
 	}
 	return $out;
 }
+
+function comment_types () {
+	$myself = file_get_contents(__FILE__);
+	$myself = preg_replace_callback('/(^\s*)case (0x[0-9a-f]+):\s*$/um', "comment_types_callback", $myself);
+	header('Content-type: text/plain; charset=utf-8');
+	echo $myself;
+	exit;
+}
+
+function comment_types_callback ($matches) {
+global $poi_types_array;
+	if (preg_match('/^0x([0-9a-f]{4,4})$/', $matches[2], $regs)) {
+		$code = hexdec($regs[1]);
+		if ($code >= 0xa000) {
+			// poi
+			$typename = tr($poi_types_array[$code]['nev']);
+		} else {
+			// vonal
+			$typename = line_type($code);
+		}
+
+	} else if (preg_match('/^0x([0-9a-f]{2,2})$/', $matches[2], $regs)) {
+		// felület
+		$code = hexdec($regs[1]);
+		$typename = polygon_type($code);
+	}		
+			
+	return sprintf('%scase %s: // %s', $matches[1], $matches[2], $typename);
+}
+
