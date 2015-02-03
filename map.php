@@ -281,12 +281,12 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			$tags['tourism'] = 'guest_house';
 			break;
 
-		case 0xa406: // kulcsosház
-			$tags['tourism'] = 'chalet';
-			break;
-
 		case 0xa404: // kemping
 			$tags['tourism'] = 'camp_site';
+			break;
+
+		case 0xa406: // kulcsosház
+			$tags['tourism'] = 'chalet';
 			break;
 
 		case 0xa501: // emléktábla
@@ -339,11 +339,6 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xa609: // kikötő
 			$tags['leisure'] = 'marina';
-			break;
-
-		case 0xa60a: // hajóállomás
-			$tags['railway'] = 'level_crossing';
-			$name = false;
 			break;
 
 		case 0xa60b: // repülőtér
@@ -403,6 +398,14 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			if (@$tags['Label'] == 'Gyógyszertár') $name = false;
 			break;
 
+		case 0xa708: // hivatal
+			$tags['office'] = 'government';
+			break;
+
+		case 0xa709: // hotspot
+			$tags['internet_access'] = 'wlan';
+			break;
+
 		case 0xa70a: // nyilvános telefon
 			$tags['amenity'] = 'telephone';
 			if (preg_match('/^[0-9]+-/', $tags['name'])) {
@@ -430,14 +433,6 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		case 0xa70d: // postaláda
 			$tags['amenity'] = 'post_box';
 			$name = false;
-			break;
-
-		case 0xa708: // hivatal
-			$tags['office'] = 'government';
-			break;
-
-		case 0xa709: // hotspot
-			$tags['internet_access'] = 'wlan';
 			break;
 
 		case 0xa70f: // rendőrség
