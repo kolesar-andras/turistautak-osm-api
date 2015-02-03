@@ -11,9 +11,6 @@
  * például a beállításokat, típusdefiníciós tömböket
  *
  * @todo ötletek
- * lakcím-interpolációt is lehozhatná
- * ha csak egy van egy oldalon, akkor egyetlen node-ként
-
  * geometriai index használata (sajnos a táblák nem MyISAM-ok)
  * objektum-orientált megvalósítás, szétválasztás részekre
  *
@@ -99,6 +96,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 		'Type' => sprintf('0x%02x %s', $myrow['code'], tr($myrow['typename'])),
 		'Label' => tr($myrow['nickname']),
 		'ID' => $myrow['id'],
+		'Magassag' => $myrow['altitude'],
 		'Letrehozta' => sprintf('%d %s', $myrow['owner'], tr($myrow['ownername'])),
 		'Letrehozva' => $myrow['dateinserted'],
 		'Modositotta' => sprintf('%d %s', $myrow['useruploaded'], tr($myrow['useruploadedname'])),
@@ -667,6 +665,7 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 
 		case 0xab0a:
 			$tags['natural'] = 'peak';
+			$tags['ele'] = $tags['magassag']; // ezt más ponttípusok is megkaphatnák, melyek?
 			break;
 
 		case 0xab0b:
@@ -710,10 +709,17 @@ if (is_array($rows)) foreach ($rows as $myrow) {
 			break;
 			
 		case 0xae01:
-		case 0xae06:
 			$tags['place'] = 'locality';
 			break;
-						
+
+		case 0xae06: // turistaút csomópont, szakértője: modras
+			$tags['noi'] = 'yes';
+			$tags['hiking'] = 'yes';
+			$tags['tourism'] = 'information';
+			$tags['information'] = 'route_marker';
+			$tags['ele'] = $tags['Magassag'];
+			break;
+			
 	}
 	
 	if ($name === false) unset($tags['name']);
