@@ -8,12 +8,19 @@
  *
  */
  
-$base = '/api/0.6/';
 $url = parse_url($_SERVER['REQUEST_URI']);
+
+if (preg_match('#^/(api[^/]*)/?#', $url['path'], $regs)) {
+	$api = $regs[1];
+} else {
+	$api = null;
+}
+
+$base = sprintf('/%s/0.6/', $api);
 
 switch ($url['path']) {
 
-	case '/api/capabilities':
+	case sprintf('/%s/capabilities', $api):
 	case $base . 'capabilities':
 		require_once('capabilities.php');
 		break;
