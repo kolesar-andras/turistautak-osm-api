@@ -59,7 +59,7 @@ $nodetags = array();
 
 echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
 echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
-echo sprintf("  <bounds minlat='%1.6f' minlon='%1.6f' maxlat='%1.6f' maxlon='%1.6f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
+echo sprintf("  <bounds minlat='%1.7f' minlon='%1.7f' maxlat='%1.7f' maxlon='%1.7f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
 
 // poi
 $sql = sprintf("SELECT
@@ -73,10 +73,10 @@ $sql = sprintf("SELECT
 	LEFT JOIN geocaching.users AS owner ON poi.owner = owner.id
 	LEFT JOIN geocaching.users AS useruploaded ON poi.useruploaded = useruploaded.id
 	WHERE poi.deleted=0
-	AND poi.lon>=%1.6f
-	AND poi.lat>=%1.6f
-	AND poi.lon<=%1.6f
-	AND poi.lat<=%1.6f
+	AND poi.lon>=%1.7f
+	AND poi.lat>=%1.7f
+	AND poi.lon<=%1.7f
+	AND poi.lat<=%1.7f
 	AND poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)
 	",
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
@@ -85,12 +85,12 @@ $rows = array_query($sql);
 
 if (is_array($rows)) foreach ($rows as $myrow) {
 
-	$node = sprintf('%1.6f,%1.6f', $myrow['lat'], $myrow['lon']);
+	$node = sprintf('%1.7f,%1.7f', $myrow['lat'], $myrow['lon']);
 	
 	if (isset($nd[$node])) {
 		$ref = $nd[$node];
 	} else {
-		$ref = str_replace('.', '', str_replace(',', '', $node));
+		$ref = refFromNode($node);
 		$nd[$node] = $ref;
 	}
 	$ndrefs[] = $ref;
@@ -937,10 +937,10 @@ $sql = sprintf("SELECT
 	LEFT JOIN geocaching.users AS userinserted ON segments.userinserted = userinserted.id
 	LEFT JOIN geocaching.users AS usermodified ON segments.usermodified = usermodified.id
 	WHERE deleted=0
-	AND lon_max>=%1.6f
-	AND lat_max>=%1.6f
-	AND lon_min<=%1.6f
-	AND lat_min<=%1.6f",
+	AND lon_max>=%1.7f
+	AND lat_max>=%1.7f
+	AND lon_min<=%1.7f
+	AND lat_min<=%1.7f",
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
 $rows = array_query($sql);
@@ -953,7 +953,7 @@ foreach ($rows as $myrow) {
 	$nodecount = count($nodes);
 	foreach ($nodes as $node_id => $node) {
 		if (count($coords = explode(';', $node)) >=2) {
-			$node = sprintf('%1.6f,%1.6f', $coords[0], $coords[1]);
+			$node = sprintf('%1.7f,%1.7f', $coords[0], $coords[1]);
 			if (isset($nd[$node])) {
 				$ref = $nd[$node];
 
@@ -964,7 +964,7 @@ foreach ($rows as $myrow) {
 				unset($nodetags[$ref]['noexit']);
 
 			} else {
-				$ref = str_replace('.', '', str_replace(',', '', $node));
+				$ref = refFromNode($node);
 				$nd[$node] = $ref;
 
 				// ezt csak akkor vizsgáljuk le, ha még nem volt ez a node,
@@ -978,15 +978,14 @@ foreach ($rows as $myrow) {
 
 			}
 			$ndrefs[] = $ref;
-			$wkt[] = sprintf('%1.6f %1.6f', $coords[1], $coords[0]);
+			$wkt[] = sprintf('%1.7f %1.7f', $coords[1], $coords[0]);
 			
 		}
 	}
 	
 	$attr = array(
-		'id' => $myrow['id'],
-		'version' => '999999999',
-		// '' => ,	
+		'id' => -$myrow['id'],
+		// 'version' => '999999999',
 	);
 	
 	$tags = array();
@@ -1322,8 +1321,8 @@ foreach ($rows as $myrow) {
 
 				if (preg_match('/^POINT\(([^ ]+) ([^ ]+)\)$/', $newgeom, $regs)) {
 				
-					$node = sprintf('%1.6f,%1.6f', $regs[2], $regs[1]);
-					$ref = str_replace('.', '', str_replace(',', '', $node));
+					$node = sprintf('%1.7f,%1.7f', $regs[2], $regs[1]);
+					$ref = refFromNode($node);
 					$nd[$node] = $ref;
 					$ndrefs[] = $ref;
 
@@ -1385,8 +1384,8 @@ foreach ($rows as $myrow) {
 					$firstnode = $lastnode = null;
 					foreach ($nodes as $node) {
 						$coords = explode(' ', $node);
-						$node = sprintf('%1.6f,%1.6f', $coords[1], $coords[0]);
-						$ref = str_replace('.', '', str_replace(',', '', $node));
+						$node = sprintf('%1.7f,%1.7f', $coords[1], $coords[0]);
+						$ref = refFromNode($node);
 						$nd[$node] = $ref;
 						$ndrefs[] = $ref;				
 						if ($firstnode === null) $firstnode = $ref;
@@ -1412,9 +1411,9 @@ foreach ($rows as $myrow) {
 
 					if (count($ndrefs)) {
 						$attr = array(
-							'id' => sprintf('3%09d%02d',
+							'id' => sprintf('-3%09d%02d',
 								$myrow['id'], ($oldal == 'bal' ? 1 : 2)),
-							'version' => '999999999',
+							// 'version' => '999999999',
 						);
 						$inttags = array(
 							'addr:interpolation' => @$interpolation[$szám['számozás']],
@@ -1496,8 +1495,8 @@ foreach ($rows as $myrow) {
 			);
 			
 			$attr = array(
-				'id' => sprintf('2%09d%02d', $myrow['id'], $counter),
-				'version' => '999999999',
+				'id' => sprintf('-2%09d%02d', $myrow['id'], $counter),
+				// 'version' => '999999999',
 			);
 			
 			$rel = array(
@@ -1523,10 +1522,10 @@ $sql = sprintf("SELECT
 	LEFT JOIN geocaching.users AS userinserted ON polygons.userinserted = userinserted.id
 	LEFT JOIN geocaching.users AS usermodified ON polygons.usermodified = usermodified.id
 	WHERE deleted=0
-	AND lon_max>=%1.6f
-	AND lat_max>=%1.6f
-	AND lon_min<=%1.6f
-	AND lat_min<=%1.6f",
+	AND lon_max>=%1.7f
+	AND lat_max>=%1.7f
+	AND lon_min<=%1.7f
+	AND lat_min<=%1.7f",
 	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
 $rows = array_query($sql);
@@ -1539,7 +1538,7 @@ foreach ($rows as $myrow) {
 	$nodecount = count($nodes);
 	foreach ($nodes as $node_id => $node) {
 		if (count($coords = explode(';', $node)) >=2) {
-			$node = sprintf('%1.6f,%1.6f', $coords[0], $coords[1]);
+			$node = sprintf('%1.7f,%1.7f', $coords[0], $coords[1]);
 			$break = (int) @$coords[2];
 			if ($break && count($ndrefs)) {
 				// bezárjuk a vonalat
@@ -1551,8 +1550,8 @@ foreach ($rows as $myrow) {
 							count($members));
 							
 				$attr = array(
-					'id' => $id,
-					'version' => '999999999',
+					'id' => -$id,
+					// 'version' => '999999999',
 				);
 
 				$ways[] = array(
@@ -1570,7 +1569,7 @@ foreach ($rows as $myrow) {
 			if (isset($nd[$node])) {
 				$ref = $nd[$node];
 			} else {
-				$ref = str_replace('.', '', str_replace(',', '', $node));
+				$ref = refFromNode($node);
 				$nd[$node] = $ref;
 			}
 			$ndrefs[] = $ref;
@@ -1590,8 +1589,8 @@ foreach ($rows as $myrow) {
 						count($members));
 						
 			$attr = array(
-				'id' => $id,
-				'version' => '999999999',
+				'id' => -$id,
+				// 'version' => '999999999',
 			);
 				
 			$ways[] = array(
@@ -1610,9 +1609,8 @@ foreach ($rows as $myrow) {
 	}
 	
 	$attr = array(
-		'id' => $myrow['id'] + 1000000,
-		'version' => '999999999',
-		// '' => ,	
+		'id' => -($myrow['id'] + 1000000),
+		// 'version' => '999999999',
 	);
 	
 	$tags = array();
@@ -1797,7 +1795,12 @@ foreach ($common as $jel => $group) {
 
 foreach ($nd as $node => $ref) {
 	list($lat, $lon) = explode(',', $node);
-	$attributes = sprintf('id="%s" lat="%1.6f" lon="%1.6f" version="999999999"', $ref, $lat, $lon);
+	$attrs = array(
+		'id' => $ref,
+		'lat' => sprintf('%1.7f', $lat),
+		'lon' => sprintf('%1.7f', $lon),
+	);
+	$attributes = attrs($attrs);
 	if (!isset($nodetags[$ref])) {
 		echo sprintf('<node %s />', $attributes), "\n";
 	} else {
@@ -2081,3 +2084,8 @@ global $poi_types_array;
 	return sprintf('%scase %s: // %s', $matches[1], $matches[2], $typename);
 }
 
+function refFromNode ($node) {
+
+	return '-' . str_replace('.', '', str_replace(',', '', $node));
+
+}
