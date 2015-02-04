@@ -48,6 +48,7 @@ if (@$_REQUEST['bbox'] == '') throw new Exception('no bbox');
 $bbox = explode(',', $_REQUEST['bbox']);
 if (count($bbox) != 4) throw new Exception('invalid bbox syntax');
 if ($bbox[0]>=$bbox[2] || $bbox[1]>=$bbox[3]) throw new Exception('invalid bbox');
+foreach ($bbox as $coord) if (!is_numeric($coord)) throw new Exception('invalid bbox');
 
 $area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
 if ($area>0.25) throw new Exception('bbox too large');
@@ -60,6 +61,16 @@ $nodetags = array();
 echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
 echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
 echo sprintf("  <bounds minlat='%1.7f' minlon='%1.7f' maxlat='%1.7f' maxlon='%1.7f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
+
+// letöltjük az osm adatokat is
+if ($mod == 'osm') {
+	$url = 'http://api.openstreetmap.org/api/0.6/map?bbox=' . implode(',', $bbox);
+	echo '<!-- ' . $url . ' -->';
+	$osm = file($url);
+	$linecount = count($osm);
+	for ($i=2; $i<$linecount-1; $i++) echo $osm[$i];
+	echo '<!-- ' . $url . ' -->';
+}
 
 // poi
 $sql = sprintf("SELECT
