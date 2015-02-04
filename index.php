@@ -10,42 +10,60 @@
  
 $url = parse_url($_SERVER['REQUEST_URI']);
 
-if (preg_match('#^/(api[^/]*)/?#', $url['path'], $regs)) {
+if (preg_match('#^/(api\.dev|api)-?([^/]*)/([0-9]+\.[0-9]+/)?(.*)$#', $url['path'], $regs)) {
 	$api = $regs[1];
+	$mod = $regs[2];
+	$version = $regs[3];
+	$request = $regs[4];
+
 } else {
-	$api = null;
+	header('HTTP/1.0 404 Not Found');
+	echo '404 Not Found';
+	exit;
 }
 
-$base = sprintf('/%s/0.6/', $api);
+if ($mod == 'osm' && !in_array($request, array('map', ''))) {
+	$location = 'http://api.openstreetmap.org/api/';
+	if ($version != '') $location .= $version . '/';
+	if ($request != '') $location .= $request;
+	if ($url['query'] != '') $location .= '?' . $url['query'];
 
-switch ($url['path']) {
+	// header('HTTP/1.1 301 Moved Permanently');
+	// header('HTTP/1.1 302 Found');
+	// header('HTTP/1.1 303 See Other');
+	header('HTTP/1.1 307 Temporary Redirect');
+	header('Location: ' . $location);
+	exit;
 
-	case sprintf('/%s/capabilities', $api):
-	case $base . 'capabilities':
+}
+
+switch ($request) {
+
+	case 'capabilities':
 		require_once('capabilities.php');
 		break;
 
-	case $base . 'changesets':
+	case 'changesets':
 		require_once('changesets.php');
 		break;
 		
-	case $base . 'map':
+	case 'map':
 		require_once('map.php');
 		break;
 		
-	case $base . 'map-dev':
+	case 'map-dev':
 		require_once('map-dev.php');
 		break;
 		
-	case $base . 'notes':
+	case 'notes':
 		require_once('notes.php');
 		break;
 
-	case $base . 'trackpoints':
+	case 'trackpoints':
 		require_once('trackpoints.php');
 		break;
 		
-	case '/api/':
+	case '':
 		require_once('api.php');
 		break;
 		
@@ -53,6 +71,5 @@ switch ($url['path']) {
 		header('HTTP/1.0 404 Not Found');
 		echo '404 Not Found';
 		// file_put_contents('log', $_SERVER['REQUEST_URI'] . "\n", FILE_APPEND);
-
 }
 

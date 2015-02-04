@@ -20,3 +20,5 @@ OSM szerver url: http://turistautak.hu/api
 
 Licenc: ODbL
 http://opendatacommons.org/licenses/odbl/
+
+[dev]
