@@ -23,9 +23,7 @@ if (preg_match('#^/(api\.dev|api)-?([^/]*)/?([0-9]+\.[0-9]+/)?(.*)$#', $url['pat
 }
 
 if ($mod == 'osm' && !in_array($request, array('map', ''))) {
-	$location = 'http://api.openstreetmap.org/api/';
-	if ($version != '') $location .= $version . '/';
-	if ($request != '') $location .= $request;
+	$location = 'http://api.openstreetmap.org/api/' . $version . $request;
 	if ($url['query'] != '') $location .= '?' . $url['query'];
 
 	// header('HTTP/1.1 301 Moved Permanently');
