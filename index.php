@@ -12,7 +12,7 @@ $url = parse_url($_SERVER['REQUEST_URI']);
 
 if (preg_match('#^/(api\.dev|api)-?([^/]*)/?([0-9]+\.[0-9]+/)?(.*)$#', $url['path'], $regs)) {
 	$api = $regs[1];
-	$mod = $regs[2];
+	$mods = explode('-', $regs[2]);
 	$version = $regs[3];
 	$request = $regs[4];
 
@@ -22,7 +22,24 @@ if (preg_match('#^/(api\.dev|api)-?([^/]*)/?([0-9]+\.[0-9]+/)?(.*)$#', $url['pat
 	exit;
 }
 
-if ($mod == 'osm' && !in_array($request, array('map', ''))) {
+$params = @$_GET;
+
+// a címben megadott paramétereket átalakítjuk igazi paraméterekké
+foreach ($mods as $mod) {
+	if (preg_match('/^([^=]+)=?(.*)$/', $mod, $regs)) {
+		$key = urldecode($regs[1]);
+		$value = urldecode($regs[2]);
+		if (!isset($params[$key])) {
+			$params[$key] = $value;
+		} else if (is_array($params[$key])) {
+			$params[$key][] = $value;
+		} else {
+			$params[$key] = array($params[$key], $value);
+		}
+	}
+}
+
+if (isset($params['osm']) && !in_array($request, array('map', ''))) {
 	$location = 'http://api.openstreetmap.org/api/' . $version . $request;
 	if ($url['query'] != '') $location .= '?' . $url['query'];
 

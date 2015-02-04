@@ -19,10 +19,13 @@
  *
  */
 
-require('../include_general.php');
-require('../include_arrays.php');
-require('../poi-type-array.inc.php');
-include('include/postgresql.conf.php');
+require_once('../include_general.php');
+require_once('../include_arrays.php');
+require_once('../poi-type-array.inc.php');
+include_once('include/postgresql.conf.php');
+
+require_once('types/line.php');
+require_once('types/polygon.php');
 
 ini_set('display_errors', 0);
 ini_set('memory_limit', '512M');
@@ -43,58 +46,93 @@ if (date('Y-m-d') < '2015-02-01' && !allow_download($_SERVER['PHP_AUTH_USER'], $
 // ezzel adtam megjegyzéseket a típuskódokhoz a forráskódban
 if (isset($_REQUEST['comment-types']) && $_SERVER['REMOTE_ADDR'] == $_SERVER['SERVER_ADDR']) comment_types();
 
-// bounding box
-if (@$_REQUEST['bbox'] == '') throw new Exception('no bbox');
-$bbox = explode(',', $_REQUEST['bbox']);
-if (count($bbox) != 4) throw new Exception('invalid bbox syntax');
-if ($bbox[0]>=$bbox[2] || $bbox[1]>=$bbox[3]) throw new Exception('invalid bbox');
-foreach ($bbox as $coord) if (!is_numeric($coord)) throw new Exception('invalid bbox');
+// megnézzük, lesz-e szűrés
+$filter = isset($params['poi']) || isset($params['line']) || isset($params['polygon']);
 
-$area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
-if ($area>0.25) throw new Exception('bbox too large');
+// bounding box
+if ($_REQUEST['bbox'] == '') {
+	if (!$filter) throw new Exception('no bbox');
+	$bbox = null;
+	
+} else {
+	$bbox = explode(',', $_REQUEST['bbox']);
+	if (count($bbox) != 4) throw new Exception('invalid bbox syntax');
+	if ($bbox[0]>=$bbox[2] || $bbox[1]>=$bbox[3]) throw new Exception('invalid bbox');
+	foreach ($bbox as $coord) if (!is_numeric($coord)) throw new Exception('invalid bbox');
+
+	$area = ($bbox[2]-$bbox[0])*($bbox[3]-$bbox[1]);
+	if (!$filter && $area>0.25) throw new Exception('bbox too large');
+}
 
 $nd = array();
 $ways = array();
 $rels = array();
 $nodetags = array();
 
+header('Content-type: text/xml; charset=utf-8');
+header('Content-disposition: attachment; filename=map.osm');
 echo "<?xml version='1.0' encoding='UTF-8'?>", "\n";
 echo "<osm version='0.6' upload='false' generator='turistautak.hu'>", "\n";
-echo sprintf("  <bounds minlat='%1.7f' minlon='%1.7f' maxlat='%1.7f' maxlon='%1.7f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
+if ($bbox) echo sprintf("  <bounds minlat='%1.7f' minlon='%1.7f' maxlat='%1.7f' maxlon='%1.7f' origin='turistautak.hu' />", $bbox[1], $bbox[0], $bbox[3], $bbox[2]), "\n";
 
 // letöltjük az osm adatokat is
-if ($mod == 'osm') {
+if (isset($params['osm'])) {
 	$url = 'http://api.openstreetmap.org/api/0.6/map?bbox=' . implode(',', $bbox);
-	echo '<!-- ' . $url . ' -->';
 	$osm = file($url);
 	$linecount = count($osm);
 	for ($i=2; $i<$linecount-1; $i++) echo $osm[$i];
-	echo '<!-- ' . $url . ' -->';
 }
 
 // poi
-$sql = sprintf("SELECT
-	poi.*,
-	poi_types.wp,
-	poi_types.name AS typename,
-	owner.member AS ownername,
-	useruploaded.member AS useruploadedname
-	FROM geocaching.poi
-	LEFT JOIN geocaching.poi_types ON poi.code = poi_types.code
-	LEFT JOIN geocaching.users AS owner ON poi.owner = owner.id
-	LEFT JOIN geocaching.users AS useruploaded ON poi.useruploaded = useruploaded.id
-	WHERE poi.deleted=0
-	AND poi.lon>=%1.7f
-	AND poi.lat>=%1.7f
-	AND poi.lon<=%1.7f
-	AND poi.lat<=%1.7f
-	AND poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)
-	",
-	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+$where = array();
+$where[] = "poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)";
+$where[] = "poi.deleted = 0";
+if ($bbox) $where[] = sprintf("poi.lon>=%1.7f
+		AND poi.lat>=%1.7f
+		AND poi.lon<=%1.7f
+		AND poi.lat<=%1.7f",
+			$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
-$rows = array_query($sql);
+if ($filter && !isset($params['poi'])) {
+	$where = false;
 
-if (is_array($rows)) foreach ($rows as $myrow) {
+} else if (@$params['poi'] == '') {
+	// mindet kérjük
+
+} else {
+
+	// előkészítjük a poi típustömböt
+	$poi_type = array();
+	foreach ($poi_types_array as $code => $def) {
+		if (isset($def['nev'])) $poi_type[$code] = tr($def['nev']);
+	}
+
+	$codes = typeFilter($params['poi'], $poi_type);
+
+	if (count($codes)) {
+		$where[] = sprintf('poi.code IN (%s)', implode(', ', $codes));
+	} else { // volt valami megadva, de nem találtuk meg
+		$where = false;
+	}
+}
+
+if ($where !== false) {
+	$sql = sprintf("SELECT
+		poi.*,
+		poi_types.wp,
+		poi_types.name AS typename,
+		owner.member AS ownername,
+		useruploaded.member AS useruploadedname
+		FROM geocaching.poi
+		LEFT JOIN geocaching.poi_types ON poi.code = poi_types.code
+		LEFT JOIN geocaching.users AS owner ON poi.owner = owner.id
+		LEFT JOIN geocaching.users AS useruploaded ON poi.useruploaded = useruploaded.id
+		WHERE %s", implode(' AND ', $where));
+
+	$rows = array_query($sql);
+}
+
+if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 
 	$node = sprintf('%1.7f,%1.7f', $myrow['lat'], $myrow['lon']);
 	
@@ -939,24 +977,46 @@ váróhelység nincs; megálló beállóval; állomás váróteremmel; pályaudv
 	$nodetags[$ref] = $tags;
 }
 
-// lines
-$sql = sprintf("SELECT
-	segments.*,
-	userinserted.member AS userinsertedname,
-	usermodified.member AS usermodifiedname
-	FROM segments
-	LEFT JOIN geocaching.users AS userinserted ON segments.userinserted = userinserted.id
-	LEFT JOIN geocaching.users AS usermodified ON segments.usermodified = usermodified.id
-	WHERE deleted=0
-	AND lon_max>=%1.7f
-	AND lat_max>=%1.7f
-	AND lon_min<=%1.7f
-	AND lat_min<=%1.7f",
-	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+// line
+$where = array();
+$where[] = 'deleted=0';
+if ($bbox) $where[] = sprintf("lon_max>=%1.7f
+		AND lat_max>=%1.7f
+		AND lon_min<=%1.7f
+		AND lat_min<=%1.7f",
+			$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
-$rows = array_query($sql);
+if ($filter && !isset($params['line'])) {
+	$where = false;
 
-foreach ($rows as $myrow) {
+} else if (@$params['line'] == '') {
+	// mindet kérjük
+
+} else {
+
+	$codes = typeFilter($params['line'], Line::getTypeArray());
+
+	if (count($codes)) {
+		$where[] = sprintf('segments.code IN (%s)', implode(', ', $codes));
+	} else { // volt valami megadva, de nem találtuk meg
+		$where = false;
+	}
+}
+
+if ($where !== false) {
+	$sql = sprintf("SELECT
+		segments.*,
+		userinserted.member AS userinsertedname,
+		usermodified.member AS usermodifiedname
+		FROM segments
+		LEFT JOIN geocaching.users AS userinserted ON segments.userinserted = userinserted.id
+		LEFT JOIN geocaching.users AS usermodified ON segments.usermodified = usermodified.id
+		WHERE %s", implode(' AND ', $where));
+
+	$rows = array_query($sql);
+}
+
+if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 
 	$nodes = explode("\n", trim($myrow['points']));
 	$ndrefs = array();
@@ -1001,7 +1061,7 @@ foreach ($rows as $myrow) {
 	
 	$tags = array();
 
-	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], line_type($myrow['code']));
+	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], Line::getNameFromCode($myrow['code']));
 
 	foreach ($GLOBALS['segment_attributes'] as $id => $array) {
 
@@ -1501,7 +1561,7 @@ foreach ($rows as $myrow) {
 			$members = array(
 				array(
 					'type' => 'way',
-					'ref' => $myrow['id'],
+					'ref' => -$myrow['id'],
 				)
 			);
 			
@@ -1524,24 +1584,47 @@ foreach ($rows as $myrow) {
 		
 }
 
-// polygons
-$sql = sprintf("SELECT 
-	polygons.*,
-	userinserted.member AS userinsertedname,
-	usermodified.member AS usermodifiedname
-	FROM polygons
-	LEFT JOIN geocaching.users AS userinserted ON polygons.userinserted = userinserted.id
-	LEFT JOIN geocaching.users AS usermodified ON polygons.usermodified = usermodified.id
-	WHERE deleted=0
-	AND lon_max>=%1.7f
-	AND lat_max>=%1.7f
-	AND lon_min<=%1.7f
-	AND lat_min<=%1.7f",
-	$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+// polygon
 
-$rows = array_query($sql);
+$where = array();
+$where[] = 'deleted=0';
+if ($bbox) $where[] = sprintf("lon_max>=%1.7f
+		AND lat_max>=%1.7f
+		AND lon_min<=%1.7f
+		AND lat_min<=%1.7f",
+			$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
 
-foreach ($rows as $myrow) {
+if ($filter && !isset($params['polygon'])) {
+	$where = false;
+
+} else if (@$params['polygon'] == '') {
+	// mindet kérjük
+
+} else {
+
+	$codes = typeFilter($params['polygon'], Polygon::getTypeArray());
+
+	if (count($codes)) {
+		$where[] = sprintf('polygons.code IN (%s)', implode(', ', $codes));
+	} else { // volt valami megadva, de nem találtuk meg
+		$where = false;
+	}
+}
+
+if ($where !== false) {
+	$sql = sprintf("SELECT 
+		polygons.*,
+		userinserted.member AS userinsertedname,
+		usermodified.member AS usermodifiedname
+		FROM polygons
+		LEFT JOIN geocaching.users AS userinserted ON polygons.userinserted = userinserted.id
+		LEFT JOIN geocaching.users AS usermodified ON polygons.usermodified = usermodified.id
+		WHERE %s", implode(' AND ', $where));
+
+	$rows = array_query($sql);
+}
+
+if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 
 	$nodes = explode("\n", trim($myrow['points']));
 	$ndrefs = array();
@@ -1556,12 +1639,12 @@ foreach ($rows as $myrow) {
 				if ($ndrefs[count($ndrefs)-1] != $ndrefs[0])
 					$ndrefs[] = $ndrefs[0];
 					
-				$id = sprintf('%d%s',
+				$id = sprintf('-%d%s',
 							1000000 + $myrow['id'],
 							count($members));
 							
 				$attr = array(
-					'id' => -$id,
+					'id' => $id,
 					// 'version' => '999999999',
 				);
 
@@ -1595,12 +1678,12 @@ foreach ($rows as $myrow) {
 		
 		// ha többrészes, akkor ezt a részt is mentjük
 		if (count($members)) {
-			$id = sprintf('%d%s',
+			$id = sprintf('-%d%s',
 						1000000 + $myrow['id'],
 						count($members));
 						
 			$attr = array(
-				'id' => -$id,
+				'id' => $id,
 				// 'version' => '999999999',
 			);
 				
@@ -1627,7 +1710,7 @@ foreach ($rows as $myrow) {
 	$tags = array();
 
 	$tags['ID'] = $myrow['id'];
-	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], polygon_type($myrow['code']));
+	$tags['Type'] = sprintf('0x%02x %s', $myrow['code'], Polygon::getNameFromCode($myrow['code']));
 	
 	$tags['Label'] = tr($myrow['label']);
 	$tags['Letrehozva'] = $myrow['dateinserted'];
@@ -1798,7 +1881,8 @@ foreach ($common as $jel => $group) {
 			}
 
 		} catch (Exception $e) {
-			// csendben továbblépünk		
+			// csendben továbblépünk
+			echo '<!-- ' . $e->getMessage . ' -->', "\n";
 		}	
 	}
 
@@ -1867,108 +1951,6 @@ function allow_download ($user, $password) {
 	
 	return true;
 
-}
-
-function line_type ($code) {
-
-	$codes = array(
-		0x0000 => 'nullás kód, általában elfelejtett típus',
-		0x0081 => 'csapás',
-		0x0082 => 'ösvény',
-		0x0083 => 'gyalogút',
-		0x0084 => 'szekérút',
-		0x0085 => 'földút',
-		0x0086 => 'burkolatlan utca',
-		0x0087 => 'makadámút',
-		0x0091 => 'burkolt gyalogút',
-		0x0092 => 'kerékpárút',
-		0x0093 => 'utca',
-		0x0094 => 'kiemelt utca',
-		0x0095 => 'országút',
-		0x0096 => 'másodrendű főút',
-		0x0097 => 'elsőrendű főút',
-		0x0098 => 'autóút',
-		0x0099 => 'autópálya',
-		0x009a => 'erdei aszfalt',
-		0x009b => 'egyéb közút',
-		0x00a1 => 'lehajtó',
-		0x00a2 => 'körforgalom',
-		0x00a3 => 'lépcső',
-		0x00a4 => 'kifutópálya',
-		0x00b1 => 'folyó',
-		0x00b2 => 'patak',
-		0x00b3 => 'időszakos patak',
-		0x00b4 => 'komp',
-		0x00b5 => 'csatorna',
-		0x00c1 => 'vasút',
-		0x00c2 => 'kisvasút',
-		0x00c3 => 'villamos',
-		0x00c4 => 'kerítés',
-		0x00c5 => 'elektromos vezeték',
-		0x00c6 => 'csővezeték',
-		0x00c7 => 'kötélpálya',
-		0x00d1 => 'felmérendő utak',
-		0x00d2 => 'kanyarodás tiltás',
-		0x00d3 => 'vízpart',
-		0x00d4 => 'völgyvonal',
-		0x00d5 => 'megyehatár',
-		0x00d6 => 'országhatár',
-		0x00d7 => 'alapszintvonal',
-		0x00d8 => 'főszintvonal',
-		0x00d9 => 'vastag főszintvonal',
-		0x00da => 'felező szintvonal',
-	);
-	
-	return @$codes[$code];
-}
-
-function polygon_type ($code) {
-	$codes = array(
-		0x81 => 'erdő',
-		0x82 => 'fenyves',
-		0x83 => 'fiatalos',
-		0x84 => 'erdőirtás',
-		0x85 => 'bokros',
-		0x86 => 'szőlő',
-		0x87 => 'gyümölcsös',
-		0x88 => 'rét',
-		0x89 => 'park',
-		0x8a => 'szántó',
-		0x80 => 'zöldfelület',
-		0x91 => 'tenger',
-		0x92 => 'tó',
-		0x93 => 'folyó',
-		0x94 => 'mocsár',
-		0x95 => 'nádas',
-		0x96 => 'dagonya',
-		0x90 => 'víz',
-		0xa1 => 'megyeszékhely',
-		0xa2 => 'nagyváros',
-		0xa3 => 'kisváros',
-		0xa4 => 'nagyközség',
-		0xa5 => 'falu',
-		0xa6 => 'településrész',
-		0xa0 => 'település',
-		0xb1 => 'épület',
-		0xb2 => 'parkoló',
-		0xb3 => 'ipari terület',
-		0xb4 => 'bevásárlóközpont',
-		0xb5 => 'kifutópálya',
-		0xb6 => 'sípálya',
-		0xb7 => 'szánkópálya',
-		0xb8 => 'golfpálya',
-		0xb9 => 'sportpálya',
-		0xba => 'temető',
-		0xbb => 'katonai terület',
-		0xbc => 'pályaudvar',
-		0xbd => 'iskola',
-		0xbe => 'kórház',
-		0xb0 => 'mesterséges terület',
-		0xf1 => 'fokozottan védett terület',
-		0xf2 => 'háttér',
-	);
-	
-	return @$codes[$code];
 }
 
 function burkolat ($code) {
@@ -2100,3 +2082,25 @@ function refFromNode ($node) {
 	return '-' . str_replace('.', '', str_replace(',', '', $node));
 
 }
+
+function typeFilter ($types, $names) {
+
+	// előkészítjük a szűrőfeltételt
+	if (!is_array($types)) $types = array($types);
+
+	// értelmezzük a szűréseket
+	$codes = array();
+	foreach ($types as $type) {
+		if (is_numeric($type)) {
+			$codes[] = $type;
+		} else if (preg_match('/^0x([0-9a-f]+)$/i', $type, $regs)) {
+			$codes[] = hexdec($regs[1]);
+		} else {
+			$code = array_search($type, $names);
+			if ($code !== false && is_numeric($code)) $codes[] = $code;
+		}
+	}
+	
+	return $codes;
+}
+
