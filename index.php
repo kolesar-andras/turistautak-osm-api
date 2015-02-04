@@ -10,7 +10,7 @@
  
 $url = parse_url($_SERVER['REQUEST_URI']);
 
-if (preg_match('#^/(api\.dev|api)-?([^/]*)/([0-9]+\.[0-9]+/)?(.*)$#', $url['path'], $regs)) {
+if (preg_match('#^/(api\.dev|api)-?([^/]*)/?([0-9]+\.[0-9]+/)?(.*)$#', $url['path'], $regs)) {
 	$api = $regs[1];
 	$mod = $regs[2];
 	$version = $regs[3];
