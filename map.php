@@ -1292,8 +1292,8 @@ if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 		'attr' => $attr,
 		'nd' => $ndrefs,
 		'tags' => $tags,
+		'endnodes' => array($ndrefs[0], $ndrefs[count($ndrefs)-1]),
 	);
-	if ($tags['Label'] != '') $way['endnodes'] = array($ndrefs[0], $ndrefs[count($ndrefs)-1]);
 	$ways[] = $way;
 	
 	// házszámok
@@ -1505,11 +1505,107 @@ if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 	}		
 }
 
+// összefűzzük a fűzhető vonalakat
+
+if (!isset($params['noconcat'])) {
+	$common = array();
+	foreach ($ways as $id => $way) {
+		$concatHash = md5(serialize(getConcatTags($way['tags'])));
+		$common[$concatHash][$way['endnodes'][0]][] = $id;
+		$common[$concatHash][$way['endnodes'][1]][] = $id;
+	}
+
+	$count = 0;
+
+	foreach ($common as $hash => $group) {
+
+		// menet közben írjuk a $group tömböt, ezért élőben kell kiolvasnunk
+		foreach (array_keys($group) as $node) try {
+			$ids = $group[$node];
+			if (count($ids) != 2) continue;
+		
+			// ellenőrizzük, nem csináltunk-e előzőleg butaságot
+			if (isset($ways[$ids[0]]['deleted'])) throw new Exception('nincs 0');
+			if (isset($ways[$ids[1]]['deleted'])) throw new Exception('nincs 1');
+
+			$bal = $ways[$ids[0]]['nd'];
+			$jobb = $ways[$ids[1]]['nd'];
+	
+			// megnézzük, mely végén illeszkedik az új kapcsolat
+			if ($ways[$ids[1]]['endnodes'][0] == $node) {
+				$nodes = $ways[$ids[1]]['nd'];
+				$endnode = $ways[$ids[1]]['endnodes'][1];
+				$reverse = false;
+			} else if ($ways[$ids[1]]['endnodes'][1] == $node) {
+				$nodes = array_reverse($ways[$ids[1]]['nd']);
+				$endnode = $ways[$ids[1]]['endnodes'][0];
+				$reverse = true;
+			} else {
+				throw new Exception('nem az van a másik kapcsolat végén, amit vártunk');
+			}
+	
+			// önmagába záródik, nem szeretnénk szívni miatta
+			if ($endnode == $node) continue;
+	
+			if (!is_array($nodes)) {
+				throw new Exception('a nodes nem tömb');
+			}
+
+			if (!is_array($ways[$ids[0]]['nd'])) {
+				throw new Exception('a tagok nem tömb');
+			}
+
+			// megnézzük, hogy a megmaradó melyik végéhez illeszkedik
+			if ($ways[$ids[0]]['endnodes'][0] == $node) {
+				$ways[$ids[0]]['nd'] = array_merge(array_reverse($nodes), $ways[$ids[0]]['nd']);
+				$ways[$ids[0]]['endnodes'][0] = $endnode;
+				$ways[$ids[0]]['tags'] = mergeConcatTags($ways[$ids[1]]['tags'], $ways[$ids[0]]['tags'], !$reverse, false);
+
+			} else if ($ways[$ids[0]]['endnodes'][1] == $node) {
+				$ways[$ids[0]]['nd'] = array_merge($ways[$ids[0]]['nd'], $nodes);
+				$ways[$ids[0]]['endnodes'][1] = $endnode;
+				$ways[$ids[0]]['tags'] = mergeConcatTags($ways[$ids[0]]['tags'], $ways[$ids[1]]['tags'], false, $reverse);
+
+			} else {
+				throw new Exception('nem az van az aktuális kapcsolat végén, amit vártunk');
+			}
+
+			// kicseréljük a megszűnő vonal hivatkozását a túlsó végen a megmaradóra
+			if (count($group[$endnode]) == 2) {
+				if ($group[$endnode][0] == $ids[1]) {
+					$group[$endnode][0] = $ids[0];
+				} else if ($group[$endnode][1] == $ids[1]) {
+					$group[$endnode][1] = $ids[0];
+				} else {
+					throw new Exception('nem az van a csomópontban, amit vártunk');
+				}	
+			}
+
+			// megjelöljük töröltként
+			$ways[$ids[1]]['deleted'] = true;
+	
+			if (false) {		
+				$nodetags[$node][sprintf('illesztés:%d.', $count++)] = sprintf('%s [%s = %s + %s] %s',
+					$hash,
+					implode(', ', $ways[$ids[0]]['nd']),
+					implode(', ', $bal),
+					implode(', ', $jobb), 
+					$endnode);
+			}
+
+		} catch (Exception $e) {
+			// csendben továbblépünk
+			echo '<!-- way concat error: ' . $e->getMessage . ' -->', "\n";
+		}
+	}
+} // nonconcat
+
 // jelzett turistautak címkézése
 
 foreach ($ways as $way) {
-	if (!isset($way['endnodes'])) continue; // csak a jelzettek kaptak ilyet
+	if (isset($way['deleted'])) continue;
 	$tags = $way['tags'];
+	if (trim($tags['Label']) == '') continue; // csak a jelzettek kaptak ilyet
 	foreach (explode(' ', trim($tags['Label'])) as $counter => $jel) {
 
 		$jel = trim($jel);
@@ -1911,6 +2007,7 @@ foreach ($nd as $node => $ref) {
 }
 
 foreach ($ways as $way) {
+	if (isset($way['deleted'])) continue;
 	echo sprintf('<way %s >', attrs($way['attr'])), "\n";
 	foreach ($way['nd'] as $ref) {
 		echo sprintf('<nd ref="%s" />', $ref), "\n";
@@ -2109,3 +2206,46 @@ function typeFilter ($types, $names) {
 	return $codes;
 }
 
+function getConcatTags ($tags) {
+	$concatTags = array();
+	foreach ($tags as $k => $v) {
+		if (preg_match('/^[a-z]|Label$/', $k)) {
+			$concatTags[$k] = $v;
+		}
+	}
+	return $concatTags;
+}
+
+function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
+
+	foreach ($from as $k => $fv) {
+		$tv = $to[$k];
+		switch ($k) {
+			case 'Letrehozva':
+			case 'Modositva':
+				$fminmax = explode(' ... ', $fv);
+				if (count($fminmax) == 1) $fminmax[1] = $fminmax[0];
+
+				$tminmax = explode(' ... ', $tv);
+				if (count($tminmax) == 1) $tminmax[1] = $tminmax[0];
+				
+				if ($fminmax[0] < $tminmax[0]) $tminmax[0] = $fminmax[0];
+				if ($fminmax[1] > $tminmax[1]) $tminmax[1] = $fminmax[1];
+				
+				$value = $tminmax[0] . ' ... ' . $tminmax[1];
+				break;
+				
+			default:
+				$farr = explode(', ', $fv);
+				$tarr = explode(', ', $tv);
+				if ($rf) $farr = array_reverse($farr);
+				if ($tf) $tarr = array_reverse($tarr);
+				$value = implode(', ', array_unique(array_merge($tarr, $farr)));
+				break;
+			
+		}
+		$to[$k] = $value;
+	}
+	
+	return $to;
+}
