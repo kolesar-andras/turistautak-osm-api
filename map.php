@@ -1557,12 +1557,12 @@ if (!isset($params['noconcat'])) {
 
 			// megnézzük, hogy a megmaradó melyik végéhez illeszkedik
 			if ($ways[$ids[0]]['endnodes'][0] == $node) {
-				$ways[$ids[0]]['nd'] = array_merge(array_reverse($nodes), $ways[$ids[0]]['nd']);
+				$ways[$ids[0]]['nd'] = array_merge(array_reverse($nodes), array_slice($ways[$ids[0]]['nd'], 1));
 				$ways[$ids[0]]['endnodes'][0] = $endnode;
 				$ways[$ids[0]]['tags'] = mergeConcatTags($ways[$ids[1]]['tags'], $ways[$ids[0]]['tags'], !$reverse, false);
 
 			} else if ($ways[$ids[0]]['endnodes'][1] == $node) {
-				$ways[$ids[0]]['nd'] = array_merge($ways[$ids[0]]['nd'], $nodes);
+				$ways[$ids[0]]['nd'] = array_merge($ways[$ids[0]]['nd'], array_slice($nodes, 1));
 				$ways[$ids[0]]['endnodes'][1] = $endnode;
 				$ways[$ids[0]]['tags'] = mergeConcatTags($ways[$ids[0]]['tags'], $ways[$ids[1]]['tags'], false, $reverse);
 
