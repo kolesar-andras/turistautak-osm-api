@@ -28,6 +28,7 @@ require_once('types/line.php');
 require_once('types/polygon.php');
 
 ini_set('display_errors', 0);
+ini_set('max_execution_time', 1800);
 ini_set('memory_limit', '512M');
 mb_internal_encoding('UTF-8');
 
@@ -64,7 +65,7 @@ if ($_REQUEST['bbox'] == '') {
 	if (!$filter && $area>0.25) throw new Exception('bbox too large');
 }
 
-$nd = array();
+$nd = array(); // '47.1234567,19.8765432' => '-471234567198765432'
 $ways = array();
 $rels = array();
 $nodetags = array();
@@ -1508,6 +1509,8 @@ if ($where !== false && is_array($rows)) foreach ($rows as $myrow) {
 // összefűzzük a fűzhető vonalakat
 
 if (!isset($params['noconcat'])) {
+
+	// megnézzük, hogy a végpontokon mennyi azonos tulajdonságú vonal van
 	$common = array();
 	foreach ($ways as $id => $way) {
 		$concatHash = md5(serialize(getConcatTags($way['tags'])));
@@ -1515,18 +1518,52 @@ if (!isset($params['noconcat'])) {
 		$common[$concatHash][$way['endnodes'][1]][] = $id;
 	}
 
-	$count = 0;
-
+	$counter = 0;
 	foreach ($common as $hash => $group) {
 
 		// menet közben írjuk a $group tömböt, ezért élőben kell kiolvasnunk
 		foreach (array_keys($group) as $node) try {
 			$ids = $group[$node];
-			if (count($ids) != 2) continue;
+			$count = count($ids);
+			if ($count < 2) {
+				continue; // nincs mit fűznünk
+			} else if ($count == 2) {
+				$todo = array($ids); // ezt a kettőt fűzzük
+			} else {
+				$angle = array();
+				foreach ($ids as $id) {
+					$way = $ways[$id];
+					$angle[$id] = getWayAngle($way, $node);
+				}
+				$turns = array();
+				$turnids = array();
+				for ($i = 0; $i < $count-1; $i++) {
+					for ($j = $i+1; $j < $count; $j++) {
+						$turn = 180 + $angle[$ids[$j]] - $angle[$ids[$i]];
+						while ($turn < -180) $turn += 360;
+						while ($turn > 180) $turn -= 360;
+						$turn = abs($turn);
+						$turns[] = $turn;
+						$turnids[] = array($ids[$i], $ids[$j]);
+					}
+				}
+				asort($turns);
+				$todo = array();
+				$volt = array();
+				foreach (array_keys($turns) as $key) {
+					if (isset($volt[$turnids[$key][0]])) continue;
+					if (isset($volt[$turnids[$key][1]])) continue;
+					$todo[] = $turnids[$key];
+					$volt[$turnids[$key][0]] = true;
+					$volt[$turnids[$key][1]] = true;
+				}
+			}
+			
+			foreach ($todo as $ids) {	
 		
 			// ellenőrizzük, nem csináltunk-e előzőleg butaságot
-			if (isset($ways[$ids[0]]['deleted'])) throw new Exception('nincs 0');
-			if (isset($ways[$ids[1]]['deleted'])) throw new Exception('nincs 1');
+			if (isset($ways[$ids[0]]['deleted'])) throw new Exception('nincs 0: ' . $ways[$ids[0]]['tags']['ID']);
+			if (isset($ways[$ids[1]]['deleted'])) throw new Exception('nincs 1: ' . $ways[$ids[1]]['tags']['ID']);
 
 			$bal = $ways[$ids[0]]['nd'];
 			$jobb = $ways[$ids[1]]['nd'];
@@ -1571,31 +1608,25 @@ if (!isset($params['noconcat'])) {
 			}
 
 			// kicseréljük a megszűnő vonal hivatkozását a túlsó végen a megmaradóra
-			if (count($group[$endnode]) == 2) {
-				if ($group[$endnode][0] == $ids[1]) {
-					$group[$endnode][0] = $ids[0];
-				} else if ($group[$endnode][1] == $ids[1]) {
-					$group[$endnode][1] = $ids[0];
-				} else {
-					throw new Exception('nem az van a csomópontban, amit vártunk');
-				}	
-			}
+			$index = array_search($ids[1], $group[$endnode]);
+			if ($index === false) throw new Exception('nincs meg a megszűnő vonal hivatkozása a másik végén levő csomópontban');
+			$group[$endnode][$index] = $ids[0];
 
 			// megjelöljük töröltként
 			$ways[$ids[1]]['deleted'] = true;
 	
 			if (false) {		
-				$nodetags[$node][sprintf('illesztés:%d.', $count++)] = sprintf('%s [%s = %s + %s] %s',
+				$nodetags[$node][sprintf('illesztés:%d.', $counter++)] = sprintf('%s [%s = %s + %s] %s',
 					$hash,
 					implode(', ', $ways[$ids[0]]['nd']),
 					implode(', ', $bal),
 					implode(', ', $jobb), 
 					$endnode);
 			}
-
+			} // foreach
 		} catch (Exception $e) {
 			// csendben továbblépünk
-			echo '<!-- way concat error: ' . $e->getMessage . ' -->', "\n";
+			echo '<!-- way concat error: ' . $e->getMessage() . ' -->', "\n";
 		}
 	}
 } // nonconcat
@@ -2185,6 +2216,20 @@ function refFromNode ($node) {
 
 }
 
+function nodeFromRef ($ref) {
+
+	// lassú
+	// return array_search($nodes[$ref], $nd);
+	
+	// nagyon csúnya átmeneti gyors megoldás
+	return sprintf('%s.%s,%s.%s',
+		substr($ref, 1, 2),
+		substr($ref, 3, 7),
+		substr($ref, 10, 2),
+		substr($ref, 12, 7));
+		
+}
+
 function typeFilter ($types, $names) {
 
 	// előkészítjük a szűrőfeltételt
@@ -2248,4 +2293,44 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 	}
 	
 	return $to;
+}
+
+// út irányszöge az adott végpontban
+function getWayAngle($way, $node) {
+
+	$nodes = $way['nd'];
+	$count = count($nodes);
+	if ($nodes[0] == $node) {
+		$idx0 = 0;
+		$idx1 = 1;
+	} else if ($nodes[$count-1] == $node) {
+		$idx0 = $count-1;
+		$idx1 = $count-2;
+	} else {
+		return false;
+	}
+
+	$latlon0 = nodeFromRef($nodes[$idx0]);
+	$latlon1 = nodeFromRef($nodes[$idx1]);
+
+	list($lat0, $lon0) = explode(',', $latlon0);
+	list($lat1, $lon1) = explode(',', $latlon1);
+		
+	return azimuth($lat0, $lon0, $lat1, $lon1);
+
+}
+
+function azimuth ($lat1, $lon1, $lat2, $lon2) {
+
+	$φ1 = $lat1 * pi() / 180;
+	$φ2 = $lat2 * pi() / 180;
+	$λ1 = $lon1 * pi() / 180;
+	$λ2 = $lon2 * pi() / 180;
+
+	$y = sin($λ2-$λ1) * cos($φ2);
+	$x = cos($φ1)*sin($φ2) -
+			 sin($φ1)*cos($φ2)*cos($λ2-$λ1);
+
+	return atan2($y, $x) * 180 / pi();
+
 }
