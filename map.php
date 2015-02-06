@@ -19,13 +19,12 @@
  *
  */
 
-require_once('../include_general.php');
-require_once('../include_arrays.php');
-require_once('../poi-type-array.inc.php');
-include_once('include/postgresql.conf.php');
+require_once('turistautak.hu/rights.php');
+require_once('turistautak.hu/types.php');
+require_once('turistautak.hu/concat.php');
+require_once('turistautak.hu/surface.php');
 
-require_once('types/line.php');
-require_once('types/polygon.php');
+include_once('include/postgresql.conf.php');
 
 ini_set('display_errors', 0);
 ini_set('max_execution_time', 1800);
@@ -36,13 +35,6 @@ $távolság = 15; // házszámok a vonaltól
 $végétől = 25; // az utca végétől
 
 try {
-
-if (date('Y-m-d') < '2015-02-01' && !allow_download($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])) {
-	$realm = 'turistautak.hu';
-	header('WWW-Authenticate: Basic realm="' . $realm . '"');
-    header('HTTP/1.0 401 Unauthorized');
-	exit;
-}
 
 // ezzel adtam megjegyzéseket a típuskódokhoz a forráskódban
 if (isset($_REQUEST['comment-types']) && $_SERVER['REMOTE_ADDR'] == $_SERVER['SERVER_ADDR']) comment_types();
@@ -2067,80 +2059,6 @@ echo '</osm>', "\n";
 
 }
 
-function allow_download ($user, $password) {
-
-	if ($user == '') return false;
-	if ($password == '') return false;
-
-	$cryptpass = substr(crypt(strtolower($password), PASSWORD_SALT), 2);
-	$sql_user = "SELECT id, userpasswd, uids, user_ids, allow_turistautak_region_download FROM geocaching.users WHERE member='" . addslashes($user) . "'";
-
-	if (!$myrow_user = mysql_fetch_array(mysql_query($sql_user))) return false;
-	if ($myrow_user['userpasswd'] != $cryptpass) return false;
-	if ($myrow_user['allow_turistautak_region_download']) return true;
-	
-	$sql_rights = sprintf("SELECT COUNT(*) FROM regions_explicit WHERE user_id=%d AND allow_region_download=1", $myrow_user['id']);
-	if (!simple_query($sql_rights)) return false;
-	
-	return true;
-
-}
-
-function burkolat ($code) {
-	
-	$codes = array(
-		'aszfalt' => 'asphalt',
-		'rossz aszfalt' => 'asphalt',
-		'beton' => 'concrete',
-		'makadám' => 'compacted',
-		'köves' => 'gravel',
-		'kavics' => 'pebblestone',
-		'homok' => 'sand',
-		'föld' => 'dirt',
-		'középen füves' => 'grass',
-		'fű' => 'grass',
-
-		'térkő' => 'paving_stones',
-		'murva' => 'gravel',
-		'kockakő' => 'cobblestone',
-		'zúzottkő' => 'gravel',
-		'sziklás' => 'rock',
-		'fa' => 'wood',
-		'gumi' => 'tartan',
-		'föld k. fű' => 'grass',
-		'homok k. fű' => 'grass',
-		'fold' => 'dirt',
-		'agyag' => 'clay',
-		'kisszemcsés-zúzottkő' => 'fine_gravel',
-		'kissz. zúzott' => 'fine_gravel',
-		'füves' => 'grass',
-		'vasbeton útpanel' => 'concrete:plates',
-		'kő lépcső' => '',
-		'kavics-kő' => 'gravel',
-		'kő' => 'gravel',
-		'terméskő, kitöltött' => 'gravel',
-		'macskakő' => 'cobblestone',
-		'kavicsos-köves' => 'gravel',
-		'idomkő, beton térkő' => 'paving_stones',
-		'Földes' => 'dirt',
-		'kőzúzalék' => 'gravel',
-		'fém' => 'metal',
-		'földes, kavicsos' => 'dirt',
-		'rossz beton' => 'concrete',
-		'palló' => '',
-		'beton lépcső' => 'concrete',
-		'utcakő' => 'cobblestone',
-		'agyagos homok' => 'sand',
-		'sóderos föld' => 'dirt',
-		'Földes, középen füve' => '',
-		'tönkrement aszfalt' => 'asphalt',
-
-	);
-	
-	return @$codes[$code];
-
-}
-
 function JarhatosagAutoval ($code) {
 	
 	$codes = array(
@@ -2152,10 +2070,6 @@ function JarhatosagAutoval ($code) {
 	
 	return @$codes[$code];
 
-}
-
-function tr ($str) {
-	return iconv('Windows-1250', 'UTF-8', $str);
 }
 
 function attrs ($arr) {
@@ -2181,34 +2095,6 @@ function refs ($arr) {
 	return $out;
 }
 
-function comment_types () {
-	$myself = file_get_contents(__FILE__);
-	$myself = preg_replace_callback('/(^\s*)case (0x[0-9a-f]+):\s*$/um', "comment_types_callback", $myself);
-	header('Content-type: text/plain; charset=utf-8');
-	echo $myself;
-	exit;
-}
-
-function comment_types_callback ($matches) {
-global $poi_types_array;
-	if (preg_match('/^0x([0-9a-f]{4,4})$/', $matches[2], $regs)) {
-		$code = hexdec($regs[1]);
-		if ($code >= 0xa000) {
-			// poi
-			$typename = tr($poi_types_array[$code]['nev']);
-		} else {
-			// vonal
-			$typename = line_type($code);
-		}
-
-	} else if (preg_match('/^0x([0-9a-f]{2,2})$/', $matches[2], $regs)) {
-		// felület
-		$code = hexdec($regs[1]);
-		$typename = polygon_type($code);
-	}		
-			
-	return sprintf('%scase %s: // %s', $matches[1], $matches[2], $typename);
-}
 
 function refFromNode ($node) {
 
@@ -2251,86 +2137,3 @@ function typeFilter ($types, $names) {
 	return $codes;
 }
 
-function getConcatTags ($tags) {
-	$concatTags = array();
-	foreach ($tags as $k => $v) {
-		if (preg_match('/^[a-z]|Label$/', $k)) {
-			$concatTags[$k] = $v;
-		}
-	}
-	return $concatTags;
-}
-
-function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
-
-	foreach ($from as $k => $fv) {
-		$tv = $to[$k];
-		switch ($k) {
-			case 'Letrehozva':
-			case 'Modositva':
-				$fminmax = explode(' ... ', $fv);
-				if (count($fminmax) == 1) $fminmax[1] = $fminmax[0];
-
-				$tminmax = explode(' ... ', $tv);
-				if (count($tminmax) == 1) $tminmax[1] = $tminmax[0];
-				
-				if ($fminmax[0] < $tminmax[0]) $tminmax[0] = $fminmax[0];
-				if ($fminmax[1] > $tminmax[1]) $tminmax[1] = $fminmax[1];
-				
-				$value = $tminmax[0] . ' ... ' . $tminmax[1];
-				break;
-				
-			default:
-				$farr = explode(', ', $fv);
-				$tarr = explode(', ', $tv);
-				if ($rf) $farr = array_reverse($farr);
-				if ($tf) $tarr = array_reverse($tarr);
-				$value = implode(', ', array_unique(array_merge($tarr, $farr)));
-				break;
-			
-		}
-		$to[$k] = $value;
-	}
-	
-	return $to;
-}
-
-// út irányszöge az adott végpontban
-function getWayAngle($way, $node) {
-
-	$nodes = $way['nd'];
-	$count = count($nodes);
-	if ($nodes[0] == $node) {
-		$idx0 = 0;
-		$idx1 = 1;
-	} else if ($nodes[$count-1] == $node) {
-		$idx0 = $count-1;
-		$idx1 = $count-2;
-	} else {
-		return false;
-	}
-
-	$latlon0 = nodeFromRef($nodes[$idx0]);
-	$latlon1 = nodeFromRef($nodes[$idx1]);
-
-	list($lat0, $lon0) = explode(',', $latlon0);
-	list($lat1, $lon1) = explode(',', $latlon1);
-		
-	return azimuth($lat0, $lon0, $lat1, $lon1);
-
-}
-
-function azimuth ($lat1, $lon1, $lat2, $lon2) {
-
-	$φ1 = $lat1 * pi() / 180;
-	$φ2 = $lat2 * pi() / 180;
-	$λ1 = $lon1 * pi() / 180;
-	$λ2 = $lon2 * pi() / 180;
-
-	$y = sin($λ2-$λ1) * cos($φ2);
-	$x = cos($φ1)*sin($φ2) -
-			 sin($φ1)*cos($φ2)*cos($λ2-$λ1);
-
-	return atan2($y, $x) * 180 / pi();
-
-}
