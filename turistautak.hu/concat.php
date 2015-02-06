@@ -1,10 +1,10 @@
 <?php 
 
 /**
- * turistautak.hu vonalak összefűzéséhez
+ * turistautak.hu vonalak tulajdonságainak egyesítése
  *
  * @author Kolesár András <kolesar@turistautak.hu>
- * @since 2014.06.09
+ * @since 2015.02.05
  *
  */
 

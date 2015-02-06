@@ -1,10 +1,10 @@
 <?php 
 
 /**
- * turistautak.hu utak burkolatának megfeleltetése
+ * turistautak.hu utak tulajdonságainak megfeleltetése
  *
  * @author Kolesár András <kolesar@turistautak.hu>
- * @since 2014.06.09
+ * @since 2015.01.27
  *
  */
 
@@ -63,3 +63,15 @@ function burkolat ($code) {
 
 }
 
+function JarhatosagAutoval ($code) {
+	
+	$codes = array(
+		'A' => 'good',
+		'B' => 'bad',
+		'C' => 'very_bad',
+		'D' => 'very_horrible',
+	);
+	
+	return @$codes[$code];
+
+}

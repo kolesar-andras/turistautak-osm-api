@@ -1,7 +1,7 @@
 <?php 
 
 /**
- * turistautak.hu-hoz kapcsolódó dolgok
+ * turistautak.hu jogosultságokhoz kapcsolódó dolgok
  *
  * @author Kolesár András <kolesar@turistautak.hu>
  * @since 2014.06.09
