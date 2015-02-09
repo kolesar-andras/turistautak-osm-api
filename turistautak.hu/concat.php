@@ -34,10 +34,17 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 				if ($fminmax[0] < $tminmax[0]) $tminmax[0] = $fminmax[0];
 				if ($fminmax[1] > $tminmax[1]) $tminmax[1] = $fminmax[1];
 				
-				$value = $tminmax[0] . ' ... ' . $tminmax[1];
+				if ($tminmax[0] == $tminmax[1]) {
+					$value = $tminmax[0];
+				} else {
+					$value = $tminmax[0] . ' ... ' . $tminmax[1];
+				}
 				break;
 				
 			default:
+				if ($fv == '' && $tv == '') break;
+				if ($fv == '') $fv = 'N/A';
+				if ($tv == '') $tv = 'N/A';
 				$farr = explode(', ', $fv);
 				$tarr = explode(', ', $tv);
 				if ($rf) $farr = array_reverse($farr);
