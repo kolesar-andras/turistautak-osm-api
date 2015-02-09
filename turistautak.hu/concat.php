@@ -11,7 +11,7 @@
 function getConcatTags ($tags) {
 	$concatTags = array();
 	foreach ($tags as $k => $v) {
-		if (preg_match('/^[a-z]|Label$/', $k)) {
+		if (preg_match('/^[a-z]|^Label$|^Turamozgalom$/', $k)) {
 			$concatTags[$k] = $v;
 		}
 	}

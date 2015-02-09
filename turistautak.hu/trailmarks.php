@@ -12,9 +12,11 @@ function trailmarks (&$ways, &$rels) {
 
 	foreach ($ways as $way) {
 		if (isset($way['deleted'])) continue;
-		$tags = $way['tags'];
-		if (trim($tags['Label']) == '') continue; // csak a jelzettek kaptak ilyet
-		foreach (explode(' ', trim($tags['Label'])) as $counter => $jel) {
+		$counter = 0;
+		$volt = array();
+		
+		$tag = trim($way['tags']['Label']);
+		if ($tag != '') foreach (explode(' ', $tag) as $jel) {
 
 			$jel = trim($jel);
 		
@@ -77,8 +79,45 @@ function trailmarks (&$ways, &$rels) {
 			);
 		
 			$attr = array(
-				'id' => sprintf('-2%09d%02d', -$way['attr']['id'], $counter),
-				// 'version' => '999999999',
+				'id' => sprintf('-2%09d%02d', -$way['attr']['id'], $counter++),
+			);
+		
+			$rel = array(
+				'attr' => $attr,
+				'members' => $members,
+				'tags' => $tags,
+				'endnodes' => $way['endnodes'],
+			);
+	
+			$rels[] = $rel;
+
+		}
+
+		// külön mező az úton haladó túramozgalmak nevének felsorolása vesszővel
+		$tag = @$way['tags']['Turamozgalom'] . ',' . @$way['tags']['K'];
+		foreach (explode(',', $tag) as $jel) {
+		
+			$jel = trim($jel);
+			if ($jel == '') continue;
+			if (isset($volt[$jel])) continue;
+			$volt[$jel] = true;
+
+			$tags = array(
+				'name' => $jel,
+				'route' => 'hiking',
+				'type' => 'route',
+				'source' => 'turistautak.hu',
+			);
+
+			$members = array(
+				array(
+					'type' => 'way',
+					'ref' => $way['attr']['id'],
+				)
+			);
+		
+			$attr = array(
+				'id' => sprintf('-2%09d%02d', -$way['attr']['id'], $counter++),
 			);
 		
 			$rel = array(
