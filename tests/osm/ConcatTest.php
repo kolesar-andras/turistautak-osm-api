@@ -29,12 +29,13 @@ class ConcatTest extends PHPUnit_Framework_TestCase {
 		$this->assertEquals('B, A, D, C', mergeConcatTags($one, $two, true, true)['Utcanev']);
 
 		// tartományok
-		$one = array('KorlatozasSebesseg' => '130');
-		$two = array('KorlatozasSebesseg' => '90');
-		$this->assertEquals('90 ... 130', mergeConcatTags($one, $two)['KorlatozasSebesseg']);
+		$one = array('Modositva' => '2015-02-01 12:34:56');
+		$two = array('Modositva' => '2015-02-01 12:34:55');
+		$this->assertEquals('2015-02-01 12:34:55 ... 2015-02-01 12:34:56', mergeConcatTags($one, $two)['Modositva']);
 
-		$one = array('KorlatozasSebesseg' => 'N/A ... 50');
-		$this->assertEquals('N/A ... 90', mergeConcatTags($one, $two)['KorlatozasSebesseg']);
+		$two = array();
+		$this->assertEquals('2015-02-01 12:34:56', mergeConcatTags($one, $two)['Modositva']);
+		$this->assertEquals('2015-02-01 12:34:56', mergeConcatTags($two, $one)['Modositva']);
 				
 	}
 

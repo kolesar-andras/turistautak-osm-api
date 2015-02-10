@@ -33,17 +33,14 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 		switch ($k) {
 			case 'Letrehozva':
 			case 'Modositva':
-			case 'KorlatozasSebesseg':
+				if ($fv == '') { $value = $tv; break; }
+				if ($tv == '') { $value = $fv; break; }
+				
 				$fminmax = explode(' ... ', $fv);
 				if (count($fminmax) == 1) $fminmax[1] = $fminmax[0];
 
 				$tminmax = explode(' ... ', $tv);
 				if (count($tminmax) == 1) $tminmax[1] = $tminmax[0];
-
-				if ($fminmax[0] == 'N/A') $fminmax[0] = '';
-				if ($fminmax[1] == 'N/A') $fminmax[1] = '';
-				if ($tminmax[0] == 'N/A') $tminmax[0] = '';
-				if ($tminmax[1] == 'N/A') $tminmax[1] = '';
 
 				if ($fminmax[0] < $tminmax[0]) $tminmax[0] = $fminmax[0];
 				if ($fminmax[1] > $tminmax[1]) $tminmax[1] = $fminmax[1];				
@@ -51,8 +48,6 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 				if ($tminmax[0] == $tminmax[1]) {
 					$value = $tminmax[0];
 				} else {
-					if ($tminmax[0] == '') $tminmax[0] = 'N/A';
-					if ($tminmax[1] == '') $tminmax[1] = 'N/A';
 					$value = $tminmax[0] . ' ... ' . $tminmax[1];
 				}
 				break;
