@@ -727,12 +727,7 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$tags['checkpoint'] = 'hiking';
 				$tags['checkpoint:type'] = 'stamp';
 				break;
-
-			case 0xae00: // egyéb
-				$tags['fixme'] = 'tagging';
-				$name = false;
-				break;
-			
+		
 			case 0xae01: // névrajz
 				$tags['place'] = 'locality';
 				break;
@@ -744,7 +739,10 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$tags['information'] = 'route_marker';
 				$tags['ele'] = $tags['Magassag'];
 				break;
-			
+
+			default: // minden, ami nincs a fenti listában
+				$tags['landuse'] = 'fixme';
+				// erre a JOSM figyelmeztetést ad, mert node nem tartalmazhat landuse címkét
 		}
 	
 		if ($name === false) unset($tags['name']);
