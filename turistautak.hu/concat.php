@@ -22,6 +22,7 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 
 	foreach ($from as $k => $fv) {
 		$tv = $to[$k];
+		$value = null;
 		switch ($k) {
 			case 'Letrehozva':
 			case 'Modositva':
@@ -53,7 +54,7 @@ function mergeConcatTags ($to, $from, $rt = false, $rf = false) {
 				break;
 			
 		}
-		$to[$k] = $value;
+		if ($value !== null) $to[$k] = $value;
 	}
 	
 	return $to;
