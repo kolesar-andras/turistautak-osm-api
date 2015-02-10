@@ -13,8 +13,10 @@ function concat_trailmarks (&$rels) {
 	$common = array();
 	foreach ($rels as $id => $rel) {
 		if (!isset($rel['endnodes'])) continue; // csak a jelzés-kapcsolatok érdekelnek
-		$common[$rel['tags']['jel']][$rel['endnodes'][0]][] = $id;
-		$common[$rel['tags']['jel']][$rel['endnodes'][1]][] = $id;
+		$kapcsolat = @$rel['tags']['jel'];
+		if ($kapcsolat == '') $kapcsolat = @$rel['tags']['name'];
+		$common[$kapcsolat][$rel['endnodes'][0]][] = $id;
+		$common[$kapcsolat][$rel['endnodes'][1]][] = $id;
 	}
 
 	$count = 0;

@@ -7,7 +7,9 @@
  * @since 2014.06.09
  *
  */
- 
+
+require_once('autoload.php');
+
 $url = parse_url($_SERVER['REQUEST_URI']);
 
 if (preg_match('#^/(api\.dev|api)-?([^/]*)/?([0-9]+\.[0-9]+/)?(.*)$#', $url['path'], $regs)) {
