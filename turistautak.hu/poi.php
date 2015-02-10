@@ -523,6 +523,13 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$name = false;
 				break;
 
+			case 0xaa0b: // híd
+				// tudom, hogy az OSM-ben ezt pontra nem használják
+				// viszont így fennakad az ellenőrzésen
+				$tags['bridge'] = 'yes';
+				if (in_array(@$tags['Label'], array('Híd'))) $name = false;
+				break;
+
 			case 0xaa0c: // információs tábla
 				$tags['information'] = 'board';
 				$name = false;
