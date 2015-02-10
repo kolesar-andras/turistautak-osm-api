@@ -201,6 +201,13 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$tags['amenity'] = 'fountain';
 				$name = false;
 				break;
+			
+			case 0xa209: // gémeskút
+				$tags['man_made'] = 'water_well';
+				if (in_array(@$tags['Label'], array('Gémeskút'))) $name = false;
+				if (preg_match('/nem i/', $tags['Label'])) $tags['drinking_water'] = 'no';
+				if (preg_match('/rom/', $tags['Label'])) $tags['ruins'] = 'yes';
+				break;
 
 			case 0xa300: // épület
 			case 0xa301: // ház
@@ -277,6 +284,7 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				if (in_array(@$tags['Label'], array('Kereszt', 'Feszület'))) $name = false;
 				break;
 
+			case 0xa500: // emlékhely
 			case 0xa503: // emlékmű
 				$tags['historic'] = 'memorial';
 				break;
@@ -451,6 +459,12 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$tags['amenity'] = 'bureau_de_change';
 				break;
 
+			case 0xa802: // focipálya
+				$tags['leisure'] = 'pitch';
+				$tags['sport'] = 'soccer';
+				if (in_array(@$tags['Label'], array('Focipálya'))) $name = false;
+				break;
+
 			case 0xa806: // teniszpálya
 				$tags['leisure'] = 'pitch';
 				$tags['sport'] = 'tennis';
@@ -500,6 +514,19 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 			case 0xaa03: // gyár
 				$tags['man_made'] = 'works';
 				$name = false;
+				break;
+
+			case 0xaa05: // mezőgazdasági telep
+				$tags['building'] = 'farm_auxiliary'; // ???
+				if (in_array(@$tags['Label'], array(
+					'Mezőgazdasági telep',
+					'Állattartó telep',
+					'Sertéstelep',
+					'Major',
+					'Tsz',
+					'Tanya',
+					'Mg. telep',
+					))) $name = false;
 				break;
 
 			case 0xaa06: // rádiótorony
@@ -598,6 +625,12 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				$tags['man_made'] = 'tower';
 				break;
 
+			case 0xaa2e: // gyaloghíd
+				$tags['bridge'] = 'yes';
+				$tags['foot'] = 'yes';
+				$tags['vehicle'] = 'no';
+				break;
+
 			case 0xaa34: // vízmű
 				$tags['man_made'] = 'water_works';
 				$name = false;
@@ -666,6 +699,10 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 				if (@$tags['Label'] == 'Vízesés') $name = false;
 				break;
 
+			case 0xab0f: // veszély
+				$tags['hazard'] = 'yes';
+				break;
+
 			case 0xac02: // szelektív hulladékgyűjtő
 				$tags['amenity'] = 'recycling';
 				$name = false;
@@ -689,6 +726,11 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 			case 0xad01: // pecsételőhely
 				$tags['checkpoint'] = 'hiking';
 				$tags['checkpoint:type'] = 'stamp';
+				break;
+
+			case 0xae00: // egyéb
+				$tags['fixme'] = 'tagging';
+				$name = false;
 				break;
 			
 			case 0xae01: // névrajz
