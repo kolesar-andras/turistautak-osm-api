@@ -708,6 +708,13 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 		if ($name === false) unset($tags['name']);
 		$tags['url'] = 'http://turistautak.hu/poi.php?id=' . $myrow['id'];
 	
+		// ha magasságot találunk a nevében, akkor azt beállítjuk ele= címkeként
+		$regexp = '/\s*\(\s*([0-9.,]+)\s*m\s*\)/';
+		if (preg_match($regexp, $tags['name'], $regs)) {
+			$tags['ele'] = str_replace(',', '.', $regs[1]);
+			$tags['name'] = trim(preg_replace($regexp, '', $tags['name']));
+		}
+
 		$tags['email'] = @$tags['POI:email'];
 	
 		if (@$tags['POI:telefon'] != '' && $tags['POI:mobil'] != '' && $tags['POI:telefon'] != $tags['POI:mobil']) {
