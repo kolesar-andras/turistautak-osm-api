@@ -112,7 +112,12 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 		}
 
 		$tags['[----------]'] = '[----------]';
-		$tags['name'] = preg_replace('/ \.\.$/', '', $tags['Label']);
+		$tags['name'] = trim($tags['Label']);
+		$regexp = '/\s?\.\.$/';
+		if (preg_match($regexp, $tags['name'])) {
+			$tags['name'] = preg_replace($regexp, '', $tags['name']);
+			$tags['fixme'] = 'position';
+		}
 		$name = null;
 	
 		switch (@$myrow['code']) {
