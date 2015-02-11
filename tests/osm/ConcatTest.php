@@ -1,6 +1,6 @@
 <?php
 
-require_once('../../turistautak.hu/concat.php');
+require_once(dirname(__FILE__) . '/../../turistautak.hu/concat.php');
 
 class ConcatTest extends PHPUnit_Framework_TestCase {
 
