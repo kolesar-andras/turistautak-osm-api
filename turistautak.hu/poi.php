@@ -16,11 +16,8 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 	$where = array();
 	$where[] = "poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)";
 	$where[] = "poi.deleted = 0";
-	if ($bbox) $where[] = sprintf("poi.lon>=%1.7f
-			AND poi.lat>=%1.7f
-			AND poi.lon<=%1.7f
-			AND poi.lat<=%1.7f",
-				$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+	if ($bbox) $where[] = sprintf("MBRIntersects(LineStringFromText('LINESTRING(%1.6f %1.6f, %1.6f %1.6f)'), g)",
+			$bbox[1], $bbox[0], $bbox[3], $bbox[2]); // fordítva vannak az adatbázisban: lat, lon
 
 	if ($filter && !isset($params['poi'])) {
 		$where = false;

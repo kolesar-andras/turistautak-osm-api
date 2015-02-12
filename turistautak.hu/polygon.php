@@ -12,11 +12,8 @@ function polygon (&$nd, &$nodetags, &$ways, &$rels, $bbox, $filter, $params) {
 
 	$where = array();
 	$where[] = 'deleted=0';
-	if ($bbox) $where[] = sprintf("lon_max>=%1.7f
-			AND lat_max>=%1.7f
-			AND lon_min<=%1.7f
-			AND lat_min<=%1.7f",
-				$bbox[0], $bbox[1], $bbox[2], $bbox[3]);
+	if ($bbox) $where[] = sprintf("MBRIntersects(LineStringFromText('LINESTRING(%1.6f %1.6f, %1.6f %1.6f)'), g)",
+			$bbox[1], $bbox[0], $bbox[3], $bbox[2]); // fordítva vannak az adatbázisban: lat, lon
 
 	if ($filter && !isset($params['polygon'])) {
 		$where = false;
