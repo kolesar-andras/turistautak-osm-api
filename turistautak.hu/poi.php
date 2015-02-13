@@ -15,6 +15,7 @@ function poi (&$nd, &$nodetags, $bbox, $filter, $params) {
 
 	$where = array();
 	$where[] = "poi.code NOT IN (0xad02, 0xad03, 0xad04, 0xad05, 0xad06, 0xad07, 0xad08, 0xad09, 0xad0a, 0xad00)";
+	$where[] = 'lat<>0 and lon<>0'; // ezek eleve értelmetlenek, ráadásul a JOSM kiakad a nullás azonosítón
 	$where[] = "poi.deleted = 0";
 	if ($bbox) $where[] = sprintf("MBRIntersects(LineStringFromText('LINESTRING(%1.6f %1.6f, %1.6f %1.6f)'), g)",
 			$bbox[1], $bbox[0], $bbox[3], $bbox[2]); // fordítva vannak az adatbázisban: lat, lon
