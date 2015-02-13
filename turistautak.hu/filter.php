@@ -42,7 +42,7 @@ function typeFilter ($types, $names) {
 		} else if (preg_match('/^0x([0-9a-f]+)$/i', $type, $regs)) {
 			$codes[] = hexdec($regs[1]);
 		} else {
-			$code = array_search($type, $names);
+			$code = array_search(deaccent($type), deaccent($names));
 			if ($code !== false && is_numeric($code)) $codes[] = $code;
 		}
 	}
@@ -50,3 +50,18 @@ function typeFilter ($types, $names) {
 	return $codes;
 }
 
+function deaccent ($string) {
+	if (is_array($string)) {
+		foreach ($string as $k=>$v) {
+			$out[$k] = deaccent($v);
+		}
+		return $out;
+	} else {
+		return str_replace(
+			array('á', 'é', 'í', 'ó', 'ú', 'ö', 'ő', 'ü', 'ű',
+				  'Á', 'É', 'Í', 'Ó', 'Ú', 'Ö', 'Ő', 'Ü', 'Ű'),
+			array('a', 'e', 'i', 'o', 'u', 'o', 'o', 'u', 'u',
+				  'A', 'E', 'I', 'O', 'U', 'O', 'O', 'U', 'U'),
+			$string);
+	}
+}
