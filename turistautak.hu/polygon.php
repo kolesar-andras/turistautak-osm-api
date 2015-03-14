@@ -149,15 +149,35 @@ function polygon (&$nd, &$nodetags, &$ways, &$rels, $bbox, $filter, $params) {
 		switch ($myrow['code']) {
 			case 0x81: // erdő
 				$tags['landuse'] = 'forest';
+				$tags['leaf_type'] = 'broadleaved';
+				$tags['leaf_cycle'] = 'deciduous';
 				break;
 
 			case 0x82: // fenyves
 				$tags['landuse'] = 'forest';
 				$tags['leaf_type'] = 'needleleaved';
+				$tags['leaf_cycle'] = 'evergreen';
+				break;
+			
+			case 0x8b: // vegyes erdő
+				$tags['landuse'] = 'forest';
+				$tags['leaf_type'] = 'mixed';
+				$tags['leaf_cycle'] = 'mixed';
+				break;
+			
+			case 0x83: // fiatalos
+				$tags['natural'] = 'scrub';
+				$tags['landcover'] = 'trees';
+				break;
+			
+			case 0x84: // erdőirtás
+				$tags['natural'] = 'scrub';
+				$tags['man_made'] = 'clearcut';
 				break;
 			
 			case 0x85: // bokros
 				$tags['natural'] = 'scrub';
+				$tags['landcover'] = 'bushes';
 				break;
 			
 			case 0x86: // szőlő
@@ -167,36 +187,150 @@ function polygon (&$nd, &$nodetags, &$ways, &$rels, $bbox, $filter, $params) {
 			case 0x87: // gyümölcsös
 				$tags['landuse'] = 'orchard';
 				break;
+				
+			case 0x88: // rét
+				$tags['landuse'] = 'grassland';
+				break;	
+			
+			case 0x89: // park
+				$tags['leisure'] = 'park';
+				break;	
+			
+			case 0x8a: // szántó
+				$tags['landuse'] = 'meadow';
+				break;	
+			
+			case 0x80: // zöldfelület
+				$tags['natural'] = 'undefined';
+				break;	
 			
 			case 0x90: // víz
 			case 0x91: // tenger
+				$tags['natural'] = 'water';
+			
 			case 0x92: // tó
+				$tags['natural'] = 'water';
+				$tags['water'] = 'lake';
+			
 			case 0x93: // folyó
 				$tags['natural'] = 'water';
+				$tags['water'] = 'river';
 				break;
-
+				
+			case 0x94: // mocsár
+				$tags['natural'] = 'wetland';
+				$tags['water'] = 'swamp';
+				break;
+				
+			case 0x95: // nádas
+				$tags['natural'] = 'wetland';
+				$tags['water'] = 'reedbed';
+				break;
+				
+			case 0x96: // dagonya
+				$tags['natural'] = 'mud';
+				break;	
+				
 			case 0xa0: // település
-			case 0xa1: // megyeszékhely
-			case 0xa2: // nagyváros
-			case 0xa3: // kisváros
-			case 0xa4: // nagyközség
-			case 0xa5: // falu
-			case 0xa6: // településrész
 				$tags['landuse'] = 'residential';
 				break;
-
-			case 0xb2: // parkoló
-				$tags['amenity'] = 'parking';
+			
+			case 0xa1: // megyeszékhely
+				$tags['landuse'] = 'residential';
+				$tags['place'] = 'city';
 				break;
+			
+			case 0xa2: // nagyváros
+			case 0xa3: // kisváros
+				$tags['landuse'] = 'residential';
+				$tags['place'] = 'town';
+				break;
+			
+			case 0xa4: // nagyközség
+			case 0xa5: // falu
+				$tags['landuse'] = 'residential';
+				$tags['place'] = 'village';
+				break;
+			
+			case 0xa6: // településrész
+				$tags['landuse'] = 'residential';
+				$tags['place'] = 'suburb';
+				break;
+				
+			case 0xa7: // üdülőövezet
+				$tags['landuse'] = 'allotments';
+				break;	
 
 			case 0xb1: // épület
 				$tags['building'] = 'yes';
 				break;
+			
+			case 0xb2: // parkoló
+				$tags['amenity'] = 'parking';
+				break;
+
+			case 0xb3: // ipari terület
+				$tags['landuse'] = 'industrial';
+				break;
+				
+			case 0xb4: // bevásárlóközpont
+				$tags['shop'] = 'supermarket';
+				break;	
+				
+			case 0xb5: // kifutópálya
+				$tags['aeroway'] = 'runway';
+				break;		
+				
+			case 0xb6: // sípálya
+				$tags['leisure'] = 'pitch';
+				$tags['sport'] = 'skiing';
+				break;		
+
+			case 0xb7: // szánkópálya
+				$tags['leisure'] = 'pitch';
+				$tags['sport'] = 'tobbogan';
+				break;	
+				
+			case 0xb8: // golfpálya
+				$tags['leisure'] = 'pitch';
+				$tags['sport'] = 'golf';
+				break;		
+				
+			case 0xb9: // sportpálya
+				$tags['leisure'] = 'pitch';
+				break;		
 
 			case 0xba: // temető
 				$tags['landuse'] = 'cemetery';
 				break;
-
+				
+			case 0xbb: // katonai terület
+				$tags['landuse'] = 'military';
+				break;	
+				
+			case 0xbc: // pályaudvar
+				$tags['landuse'] = 'railway';
+				break;	
+				
+			case 0xbd: // iskola
+				$tags['amenity'] = 'school';
+				break;	
+				
+			case 0xbe: // kórház
+				$tags['amenity'] = 'hospital';
+				break;	
+			
+			case 0xbf: // külszíni fejtés
+				$tags['landuse'] = 'quarry';
+				break;	
+				
+			case 0xb0: // mesterséges terület
+				$tags['man_made'] = 'yes';
+				break;		
+			
+			case 0xf1: // fokozottan védett terület
+				$tags['boundary'] = 'protected area';
+				break;		
 		}
 
 		$tags['name'] = tr(trim(@$myrow['Label']));
