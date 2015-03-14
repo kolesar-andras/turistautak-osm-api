@@ -135,15 +135,36 @@ function line (&$nd, &$nodetags, &$ways, $bbox, $filter, $params) {
 		$tags['[----------]'] = '[----------]';
 
 		switch ($myrow['code']) {
+			case 0x0000: // ismeretlen
+				$tags['highway'] = 'road';
+				break;
+				
 			case 0x0081: // csapás
-			case 0x0082: // ösvény
-			case 0x0083: // gyalogút
 				$tags['highway'] = 'path';
+				$tags['surface'] = 'unpaved';
+				$tags['smoothness'] = 'bad';
+				break;
+			
+			case 0x0082: // ösvény
+				$tags['highway'] = 'path';
+				$tags['surface'] = 'unpaved';
+				$tags['smoothness'] = 'good';
+				break;
+			
+			case 0x0083: // gyalogút
+				$tags['highway'] = 'footway';
+				$tags['surface'] = 'unpaved';
 				break;
 
 			case 0x0084: // szekérút
+				$tags['highway'] = 'track';
+				$tags['surface'] = 'unpaved';
+				break;
+			
 			case 0x0085: // földút
 				$tags['highway'] = 'track';
+				$tags['surface'] = 'compacted';
+				$tags['tracktype'] = 'grade2';
 				break;
 
 			case 0x0086: // burkolatlan utca
@@ -153,11 +174,13 @@ function line (&$nd, &$nodetags, &$ways, $bbox, $filter, $params) {
 
 			case 0x0087: // makadámút
 				$tags['highway'] = 'track';
+				$tags['surface'] = 'cobblestone';
 				$tags['tracktype'] = 'grade1';
 				break;
 
 			case 0x0091: // burkolt gyalogút
 				$tags['highway'] = 'footway';
+				$tags['surface'] = 'paved';
 				break;
 
 			case 0x0092: // kerékpárút
@@ -190,8 +213,15 @@ function line (&$nd, &$nodetags, &$ways, $bbox, $filter, $params) {
 				break;
 
 			case 0x009a: // erdei aszfalt
+				$tags['highway'] = 'service';
+				break;
+			
 			case 0x009b: // egyéb közút
 				$tags['highway'] = 'unclassified';
+				break;
+
+			case 0x00a1: // lehajtó
+				$tags['highway'] = 'primary_link';
 				break;
 
 			case 0x00a2: // körforgalom
@@ -252,11 +282,26 @@ function line (&$nd, &$nodetags, &$ways, $bbox, $filter, $params) {
 				break;
 
 			case 0x00c7: // kötélpálya
-			case 0x00c8: // 
-			case 0x00c9: // 
+				$tags['aerialway'] = 'goods';
+				break;
+			
+			case 0x00c8: // libegõ
 				$tags['aerialway'] = 'chair_lift';
 				break;
+			
+			case 0x00c9: // sífelvonó
+				$tags['aerialway'] = 't-bar';
+				break;
 
+			case 0x00d1: // felmérendő utak
+				$tags['highway'] = 'yes';
+				$tags['fixme'] = 'continue';
+				break;
+				
+			case 0x00d2: // kanyarodás tiltás
+				$tags['type'] = 'restriction';
+				break;	
+			
 			case 0x00d3: // vízpart
 				$tags['natural'] = 'coastline';
 				break;
@@ -267,14 +312,22 @@ function line (&$nd, &$nodetags, &$ways, $bbox, $filter, $params) {
 
 			case 0x00d5: // megyehatár
 				$tags['boundary'] = 'administrative';
-				$tags['admin_level'] = '2';
+				$tags['admin_level'] = '6';
 				break;
 
 			case 0x00d6: // országhatár
 				$tags['boundary'] = 'administrative';
-				$tags['admin_level'] = '6';
+				$tags['admin_level'] = '2';
 				break;
+				
+			case 0x00db: // nem út
+				$tags['highway'] = 'no';
+				break;	
 
+			case 0x00dc: // településhatár
+				$tags['boundary'] = 'administrative';
+				$tags['admin_level'] = '8';
+				break;	
 		}
 
 		$tags['traces'] = @$myrow['tracks'];
