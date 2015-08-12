@@ -550,7 +550,7 @@ function poiTagsOSM ($tags) {
 
 		case 0xaa06: // rádiótorony
 			$tags['man_made'] = 'tower';
-			$tags['tower_type'] = 'communication';
+			$tags['tower:type'] = 'communication';
 			$name = false;
 			break;
 
@@ -588,7 +588,7 @@ function poiTagsOSM ($tags) {
 
 		case 0xaa0f: // kilátó
 			$tags['man_made'] = 'tower';
-			$tags['tower_type'] = 'observation';
+			$tags['tower:type'] = 'observation';
 			$tags['tourism'] = 'viewpoint';
 			break;
 
