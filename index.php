@@ -41,7 +41,7 @@ foreach ($mods as $mod) {
 	}
 }
 
-if (isset($params['osm']) && !in_array($request, array('map', ''))) {
+if (isset($params['osm']) && !in_array($request, array('map', 'interpreter', ''))) {
 	$location = 'http://api.openstreetmap.org/api/' . $version . $request;
 	if ($url['query'] != '') $location .= '?' . $url['query'];
 
@@ -78,6 +78,10 @@ switch ($request) {
 
 	case 'trackpoints':
 		require_once('trackpoints.php');
+		break;
+		
+	case 'interpreter':
+		require_once('interpreter.php');
 		break;
 		
 	case '':
