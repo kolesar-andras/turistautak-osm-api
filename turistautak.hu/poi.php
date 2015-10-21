@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 /**
  * poi beolvasása és átalakítása
@@ -93,7 +93,6 @@ function poiTags ($row) {
 		if (preg_match('/^([^=]+)=(.+)$/', $attribute, $regs)) {
 			$key = tr($regs[1]);
 			$value = tr($regs[2]);
-		
 			if (isset($poi_attributes_def[$regs[1]])) {
 				$def = $poi_attributes_def[$regs[1]];
 				if ($def['datatype'] == 'attributes' && $value[0] == 'A') {
@@ -107,22 +106,18 @@ function poiTags ($row) {
 					$value = implode('; ', $attributes[$key]);
 				}
 			}
-		
 			$tags['POI:' . $key] = $value;
 		}
 	}
 	$tags['Attributes'] = $attributes;
-	
 	$tags = poiTagsOSM($tags);
 
 	// ezeket nem adjuk ki, csak az OSM címkézőnek kellett
 	unset($tags['Code']);
 	unset($tags['Attributes']);
-	
 	return $tags;
-	
 }
-	
+
 function poiTagsOSM ($tags) {
 
 	$tags['[----------]'] = '[----------]';
@@ -136,8 +131,37 @@ function poiTagsOSM ($tags) {
 
 	switch (@$tags['Code']) {
 
+		case 0xa000: // település
+			$tags['landuse'] = 'residental';
+			break;
+
+		case 0xa001: // megyeszékhely
+			$tags['place'] = 'city';
+			break;
+
+		case 0xa002: // nagyváros
+			$tags['place'] = 'town';
+			break;
+
+		case 0xa003: // kisváros
+			$tags['place'] = 'town';
+			break;
+
+		case 0xa004: // nagyközség
+			$tags['place'] = 'village';
+			break;
+
+		case 0xa005: // falu
+			$tags['place'] = 'village';
+			break;
+
 		case 0xa006: // településrész
 			$tags['place'] = 'suburb';
+			break;
+
+		case 0xa100: // étel/ital
+			$tags['amenity'] = 'food';
+			$tags['food'] = 'yes';
 			break;
 
 		case 0xa101: // élelmiszerbolt
@@ -159,7 +183,6 @@ function poiTagsOSM ($tags) {
 		case 0xa105: // kocsma
 			$tags['amenity'] = 'pub';
 			break;
-	
 		case 0xa106: // kávézó
 			$tags['amenity'] = 'cafe';
 			break;
@@ -188,8 +211,13 @@ function poiTagsOSM ($tags) {
 			$tags['shop'] = 'butcher';
 			break;
 
+		case 0xa200: // víz
+			$tags['natural'] = 'water';
+			break;
+
 		case 0xa201: // tó
 			$tags['natural'] = 'water';
+			$tags['water'] = 'lake';
 			break;
 
 		case 0xa202: // forrás
@@ -199,6 +227,11 @@ function poiTagsOSM ($tags) {
 		case 0xa203: // időszakos forrás
 			$tags['natural'] = 'spring';
 			$tags['intermittent'] = 'yes';
+			break;
+
+		case 0xa204: // nem iható forrás
+			$tags['natural'] = 'spring';
+			$tags['drinking_water'] = 'no';
 			break;
 
 		case 0xa205: // közkút
@@ -220,7 +253,7 @@ function poiTagsOSM ($tags) {
 			$tags['amenity'] = 'fountain';
 			$name = false;
 			break;
-		
+
 		case 0xa209: // gémeskút
 			$tags['man_made'] = 'water_well';
 			if (in_array(@$tags['Label'], array('Gémeskút'))) $name = false;
@@ -229,8 +262,11 @@ function poiTagsOSM ($tags) {
 			break;
 
 		case 0xa300: // épület
-		case 0xa301: // ház
 			$tags['building'] = 'yes';
+			break;
+
+		case 0xa301: // ház
+			$tags['building'] = 'detached';
 			break;
 
 		case 0xa302: // múzeum
@@ -253,7 +289,6 @@ function poiTagsOSM ($tags) {
 				$tags['religion'] = 'christian';
 				$tags['denomination'] = 'lutheran';
 			}
-		
 			break;
 
 		case 0xa304: // kápolna
@@ -270,18 +305,23 @@ function poiTagsOSM ($tags) {
 			break;
 
 		case 0xa307: // vár
+			$tags['historic'] = 'fort';
+			break;
+
 		case 0xa308: // kastély
 			$tags['historic'] = 'castle';
 			break;
 
+		case 0xa400: // szállás
 		case 0xa401: // szálloda
 			$tags['tourism'] = 'hotel';
 			break;
 
-		case 0xa400: // szállás
 		case 0xa402: // panzió
+			$tags['tourism'] = 'apartment';
+			break;
+
 		case 0xa403: // magánszállás
-		case 0xa405: // turistaszállás
 			$tags['tourism'] = 'guest_house';
 			break;
 
@@ -289,8 +329,16 @@ function poiTagsOSM ($tags) {
 			$tags['tourism'] = 'camp_site';
 			break;
 
+		case 0xa405: // turistaszállás
+			$tags['tourism'] = 'wilderness_hut';
+			break;
+
 		case 0xa406: // kulcsosház
 			$tags['tourism'] = 'chalet';
+			break;
+
+		case 0xa500: // emlékhely
+			$tags['historic'] = 'memorial';
 			break;
 
 		case 0xa501: // emléktábla
@@ -303,17 +351,24 @@ function poiTagsOSM ($tags) {
 			if (in_array(@$tags['Label'], array('Kereszt', 'Feszület'))) $name = false;
 			break;
 
-		case 0xa500: // emlékhely
 		case 0xa503: // emlékmű
-			$tags['historic'] = 'memorial';
+			$tags['historic'] = 'monument';
 			break;
 
 		case 0xa504: // szobor
 			$tags['tourism'] = 'artwork'; // ???
 			break;
 
+		case 0xa505: // temető
+			$tags['landuse'] = 'cemetery';
+			break;
+
 		case 0xa506: // sír
 			$tags['historic'] = 'wayside_shrine';
+			break;
+
+		case 0xa601: // alagút
+			$tags['tunnel'] = 'yes';
 			break;
 
 		case 0xa602: // buszmegálló
@@ -350,6 +405,14 @@ function poiTagsOSM ($tags) {
 			$tags['aeroway'] = 'areodrome';
 			break;
 
+		case 0xa60c: // kötélpálya
+			$tags['aerialway'] = 'goods';
+			break;
+
+		case 0xa60d: // parkoló járművek veszélyben
+			$tags['parking:lane:both'] = 'no_stopping';
+			break;
+
 		case 0xa60e: // traffipax
 			$tags['highway'] = 'speed_camera';
 			$name = false;
@@ -371,6 +434,10 @@ function poiTagsOSM ($tags) {
 		case 0xa612: // taxiállomás
 			$tags['amenity'] = 'taxi';
 			$name = false;
+			break;
+
+		case 0xa600: // közlekedés
+			$tags['amenity'] = 'traffic';
 			break;
 
 		case 0xa701: // üzlet
@@ -440,6 +507,10 @@ function poiTagsOSM ($tags) {
 			$name = false;
 			break;
 
+		case 0xa70e: // postafiókok
+			$tags['amenity'] = 'post_box';
+			break;
+
 		case 0xa70f: // rendőrség
 			if (@$tags['Label'] == 'Rendőrség') $name = false;
 			$tags['amenity'] = 'police';
@@ -466,6 +537,14 @@ function poiTagsOSM ($tags) {
 			$name = false;
 			break;
 
+		case 0xa715: // kölcsönző
+			$tags['amenity'] = 'rental';
+			break;
+
+		case 0xa716: // iparos
+			$tags['craft'] = 'yes';
+			break;
+
 		case 0xa717: // piac
 			$tags['amenity'] = 'marketplace';
 			break;
@@ -474,8 +553,29 @@ function poiTagsOSM ($tags) {
 			$tags['tourism'] = 'information';
 			break;
 
+		case 0xa719: // szórakozóhely
+			$tags['leisure'] = 'common';
+			break;
+
+		case 0xa71a: // állatmenhely
+			$tags['amenity'] = 'animal_shelter';
+			break;
+
+		case 0xa71b: // e-pont
+			$tags['internet_access'] = 'yes';
+			break;
+
 		case 0xa71c: // pénzváltó
 			$tags['amenity'] = 'bureau_de_change';
+			break;
+
+		case 0xa700: // szolgáltatás
+			$tags['craft'] = 'yes';
+			break;
+
+		case 0xa801: // golfpálya
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'golf';
 			break;
 
 		case 0xa802: // focipálya
@@ -484,17 +584,69 @@ function poiTagsOSM ($tags) {
 			if (in_array(@$tags['Label'], array('Focipálya'))) $name = false;
 			break;
 
+		case 0xa803: // sípálya
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'skiing';
+			break;
+
+		case 0xa804: // szánkópálya
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'tobbogan';
+			break;
+
+		case 0xa805: // stadion
+			$tags['leisure'] = 'stadium';
+			break;
+
 		case 0xa806: // teniszpálya
 			$tags['leisure'] = 'pitch';
 			$tags['sport'] = 'tennis';
+			break;
+
+		case 0xa807: // lovastanya
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'equestrian';
+			break;
+
+		case 0xa808: // strand
+			$tags['amenity'] = 'public_bath';
 			break;
 
 		case 0xa809: // uszoda
 			$tags['sport'] = 'swimming';
 			break;
 
+		case 0xa80a: // gyógyfürdő
+			$tags['amenity'] = 'spa';
+			break;
+
 		case 0xa810: // sportpálya
 			$tags['leisure'] = 'pitch';
+			break;
+
+		case 0xa811: // technikai sportok
+			$tags['sport'] = 'yes';
+			break;
+
+		case 0xa812: // vízi sportok
+			$tags['sport'] = 'water_sports';
+			break;
+
+		case 0xa813: // jégpálya
+			$tags['leisure'] = 'ice_rink';
+			break;
+
+		case 0xa814: // siklóernyős starthely
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'paragliding';
+			break;
+
+		case 0xa800: // sport
+			$tags['sport'] = 'yes';
+			break;
+
+		case 0xa900: // kulturális intézmény
+			$tags['amenity'] = 'arts_centre';
 			break;
 
 		case 0xa901: // színház
@@ -509,8 +661,21 @@ function poiTagsOSM ($tags) {
 			$tags['amenity'] = 'library';
 			break;
 
+		case 0xa904: // közösségi ház
+			$tags['amenity'] = 'community_centre';
+			break;
+
 		case 0xa905: // állatkert
 			$tags['tourism'] = 'zoo';
+			break;
+
+		case 0xa906: // cirkusz
+			$tags['amenity'] = 'theatre';
+			$tags['theatre:genre'] = 'circus';
+			break;
+
+		case 0xa907: // vidámpark
+			$tags['tourism'] = 'theme_park';
 			break;
 
 		case 0xa908: // látnivaló
@@ -530,8 +695,22 @@ function poiTagsOSM ($tags) {
 			}
 			break;
 
+		case 0xaa01: // bánya
+			$tags['landuse'] = 'industrial';
+			$tags['man_made'] = 'adit';
+			break;
+
+		case 0xaa02: // feltárás
+			$tags['landuse'] = 'quarry';
+			break;
+
 		case 0xaa03: // gyár
 			$tags['man_made'] = 'works';
+			$name = false;
+			break;
+
+		case 0xaa04: // katonai terület
+			$tags['landuse'] = 'military';
 			$name = false;
 			break;
 
@@ -564,6 +743,14 @@ function poiTagsOSM ($tags) {
 			$name = false;
 			break;
 
+		case 0xaa09: // szélkerék
+			$tags['power'] = 'generator';
+			$tags[' generator:source'] = 'wind';
+			$tags[' generator:method'] = 'wind_turbine';
+			$tags[' generator:output:electricity'] = 'yes';
+			$name = false;
+			break;
+
 		case 0xaa0a: // esőház
 			$tags['amenity'] = 'shelter';
 			$name = false;
@@ -578,6 +765,11 @@ function poiTagsOSM ($tags) {
 
 		case 0xaa0c: // információs tábla
 			$tags['information'] = 'board';
+			$name = false;
+			break;
+
+		case 0xaa0d: // létra
+			$tags['ladder'] = 'yes';
 			$name = false;
 			break;
 
@@ -618,6 +810,11 @@ function poiTagsOSM ($tags) {
 			$name = false;
 			break;
 
+		case 0xaa15: // mérőtorony
+			$tags['man_made'] = 'monitoring_station';
+			$name = false;
+			break;
+
 		case 0xaa16: // háromszögelési pont
 			$tags['man_made'] = 'survey_point';
 			$name = false;
@@ -626,6 +823,17 @@ function poiTagsOSM ($tags) {
 		case 0xaa17: // határkő
 			$tags['historic'] = 'boundary_stone';
 			if (@$tags['Label'] == 'Határkő') $name = false;
+			break;
+
+		case 0xaa18: // tanösvény-állomás
+			$tags['information'] = 'board';
+			$tags['board_type'] = 'nature';
+			$name = false;
+			break;
+
+		case 0xaa19: // vadetető
+			$tags['amenity'] = 'game_feeding';
+			$name = false;
 			break;
 
 		case 0xaa2a: // km-/útjelzőkő
@@ -640,6 +848,13 @@ function poiTagsOSM ($tags) {
 			$tags['ruins'] = 'yes';
 			break;
 
+		case 0xaa2c: // boksa
+			// A boksára valójában product=charcoal kellene
+			// de így jelölve mészkemence több van a térképen, mint boksa
+			$tags['man_made'] = 'kiln';
+			$tags['product'] = 'limestone';
+			break;
+
 		case 0xaa2d: // torony
 			$tags['man_made'] = 'tower';
 			break;
@@ -650,8 +865,39 @@ function poiTagsOSM ($tags) {
 			$tags['vehicle'] = 'no';
 			break;
 
+		case 0xaa2f: // tornapálya
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'athletics';
+			break;
+
+		case 0xaa30: // zsilip
+			$tags['natural'] = 'water';
+			$tags['water'] = 'lock';
+			break;
+
+		case 0xaa31: // erdőirtás
+			$tags['natural'] = 'scrub';
+			$tags['man_made'] = 'clearcut';
+			break;
+
+		case 0xaa32: // olajkút
+			$tags['landuse'] = 'industrial';
+			$tags['man_made'] = 'petroleum_well';
+			break;
+
+		case 0xaa33: // lépcső
+			$tags['highway'] = 'steps';
+			break;
+
 		case 0xaa34: // vízmű
+			$tags['landuse'] = 'industrial';
 			$tags['man_made'] = 'water_works';
+			$name = false;
+			break;
+
+		case 0xaa35: // szennyvíztelep
+			$tags['landuse'] = 'industrial';
+			$tags['man_made'] = 'wastewater_plant';
 			$name = false;
 			break;
 
@@ -669,6 +915,10 @@ function poiTagsOSM ($tags) {
 		case 0xaa37: // játszótér
 			$tags['leisure'] = 'playground';
 			if (@$tags['Label'] == 'Játszótér') $name = false;
+			break;
+
+		case 0xab01: // kert
+			$tags['leisure'] = 'garden';
 			break;
 
 		case 0xab02: // fa
@@ -698,6 +948,14 @@ function poiTagsOSM ($tags) {
 			$tags['natural'] = 'cave_entrance';
 			break;
 
+		case 0xab08: // zsomboly
+			$tags['natural'] = 'sinkhole';
+			break;
+
+		case 0xab09: // gyümölcsös
+			$tags['natural'] = 'orchard';
+			break;
+
 		case 0xab0a: // magaslat
 			$tags['natural'] = 'peak';
 			$tags['ele'] = @$tags['Magassag']; // ezt más ponttípusok is megkaphatnák, melyek?
@@ -709,7 +967,7 @@ function poiTagsOSM ($tags) {
 			break;
 
 		case 0xab0c: // szikla
-			$tags['natural'] = 'cliff';
+			$tags['natural'] = 'rock';
 			if (@$tags['Label'] == 'Szikla') $name = false;
 			break;
 
@@ -718,8 +976,32 @@ function poiTagsOSM ($tags) {
 			if (@$tags['Label'] == 'Vízesés') $name = false;
 			break;
 
+		case 0xab0e: // szoros
+			$tags['natural'] = 'cliff';
+			if (@$tags['Label'] == 'Szoros') $name = false;
+			if (@$tags['Label'] == 'Vízmosás') $name = false;
+			if (@$tags['Label'] == 'Kanyon') $name = false;
+			if (@$tags['Label'] == 'Szurdok') $name = false;
+			if (@$tags['Label'] == 'Szurdokvölgy') $name = false;
+			break;
+
 		case 0xab0f: // veszély
 			$tags['hazard'] = 'yes';
+			break;
+
+		case 0xab10: // sziklamászóhely
+			$tags['leisure'] = 'pitch';
+			$tags['sport'] = 'climbing';
+			$name = false;
+			break;
+
+		case 0xab00: // természetes tereptárgy
+			$tags['natural'] = 'yes';
+			break;
+
+		case 0xac01: // illegális szemétlerakó
+			$tags['illegal:amenity'] = 'waste_disposal';
+			$name = false;
 			break;
 
 		case 0xac02: // szelektív hulladékgyűjtő
@@ -731,7 +1013,7 @@ function poiTagsOSM ($tags) {
 			$tags['amenity'] = 'waste_transfer_station';
 			$name = false;
 			break;
-		
+
 		case 0xac04: // hulladékgyűjtő
 			$tags['amenity'] = 'waste_basket';
 			$name = false;
@@ -742,12 +1024,21 @@ function poiTagsOSM ($tags) {
 			$name = false;
 			break;
 
+		case 0xac00: // hulladék
+			$tags['amenity'] = 'waste';
+			$name = false;
+			break;
+
 		case 0xad01: // pecsételőhely
 			$tags['checkpoint'] = 'hiking';
 			$tags['checkpoint:type'] = 'stamp';
 			break;
-	
+
 		case 0xae01: // névrajz
+			$tags['place'] = 'locality';
+			break;
+
+		case 0xae02: // tájegység
 			$tags['place'] = 'locality';
 			break;
 
@@ -779,7 +1070,7 @@ function poiTagsOSM ($tags) {
 	if (@$tags['POI:telefon'] != '' && @$tags['POI:mobil'] != '' && $tags['POI:telefon'] != $tags['POI:mobil']) {
 		$tags['phone'] = $tags['POI:telefon'] . '; ' . $tags['POI:mobil'];
 	} else if (@$tags['POI:telefon'] != '') {
-		$tags['phone'] = $tags['POI:telefon'];	
+		$tags['phone'] = $tags['POI:telefon'];
 	} else if (@$tags['POI:mobil'] != '') {
 		$tags['phone'] = $tags['POI:mobil'];
 	}
@@ -826,14 +1117,12 @@ function poiTagsOSM ($tags) {
 	// $tags['Attributes'] egy kivétel
 	// a turistautak.hu POI állomány értelmezésének mellékterméke
 	// ráadásuk nem szöveges, mint a többi címke, hanem igazi tömbként jön
-	
 	if (is_array(@$tags['Attributes'])) foreach ($tags['Attributes'] as $key => $attribute) {
 		foreach ($attribute as $value) {
 			switch ($value) {
 				case 'vegetáriánus konyha':
 					$tags['diet:vegetarian'] = 'yes';
 					break;
-				
 				case 'nemdohányzó helyiség':
 					// ma már sehol sem lehet dohányozni
 					break;
@@ -846,19 +1135,19 @@ function poiTagsOSM ($tags) {
 				case 'nyilvános WC':
 					$tags['amenity'] = 'toilets';
 					break;
-				
+
 				case 'ivóvíz':
 					$tags['amenity'] = 'drinking_water';
 					break;
-				
+
 				case 'szemeteskuka':
 					$tags['amenity'] = 'waste_basket';
 					break;
-				
+
 				case 'papír':
 					$tags['recycling:paper'] = 'yes';
 					break;
-				
+
 				case 'színes üveg':
 				case 'fehér üveg':
 					$tags['recycling:glass'] = 'yes';
@@ -867,11 +1156,11 @@ function poiTagsOSM ($tags) {
 				case 'fémpalack':
 					$tags['recycling:cans'] = 'yes';
 					break;
-				
+
 				case 'PET palack':
 					$tags['recycling:plastic_bottles'] = 'yes';
 					break;
-				
+
 				case 'akkumulátor':
 					$tags['recycling:batteries'] = 'yes';
 					break;
@@ -935,7 +1224,7 @@ function poiTagsOSM ($tags) {
 			$tags['amenity'] = 'cafe';
 			break;
 
-	}	
+	}
 
 	/* igazolás típusa: bélyegző; kód; matrica; egyéb */
 	/* 16395 Dezsővár 47.924417, 19.909033 */
@@ -951,20 +1240,27 @@ function poiTagsOSM ($tags) {
 		case 'matrica':
 			$tags['checkpoint:type'] = 'sticker';
 			break;
-	}	
+	}
 
 	/* szállás típusa: szálloda; panzió; vendégház; turistaház; kulcsosház; kemping */
 	/* 1705 Slano 42.582633 18.209050 kemping */
 	if (@$tags['Code'] == 0xa400) switch (@$tags['POI:szállás típusa']) {
 
+		case 'szállás':
 		case 'szálloda':
 			$tags['tourism'] = 'hotel';
 			break;
 
 		case 'panzió':
+			$tags['tourism'] = 'apartment';
+			break;
+
 		case 'vendégház':
-		case 'turistaház':
 			$tags['tourism'] = 'guest_house';
+			break;
+
+		case 'turistaház':
+			$tags['tourism'] = 'wilderness_hut';
 			break;
 
 		case 'kulcsosház':
@@ -982,5 +1278,4 @@ function poiTagsOSM ($tags) {
 	// forrás
 	$tags['source'] = 'turistautak.hu';
 	return $tags;
-	
 }
